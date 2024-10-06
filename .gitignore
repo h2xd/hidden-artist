@@ -1,1 +1,4 @@
 node_modules
+
+*.gen.ts
+.env.local
