@@ -11,7 +11,7 @@ export const Route = createLazyFileRoute("/admin")({
 
 function AdminPage() {
 	const { isConnected, nextMessage } = useMqttClient();
-	const canvas = useRef();
+	const canvas = useRef<CanvasDraw>();
 
 	const mqtt = useMqttClient();
 
