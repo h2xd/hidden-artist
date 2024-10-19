@@ -22,8 +22,6 @@ const rootElement = window.document.getElementById("root");
 if (rootElement && !rootElement?.innerHTML) {
 	const root = createRoot(rootElement);
 
-	console.log("render?");
-
 	root.render(
 		<StrictMode>
 			<RouterProvider router={router} />

@@ -11,6 +11,8 @@ import {
 	useEffect,
 } from "react";
 
+import areTopicsMatching from "mqtt-match";
+
 type MqttClientContextState = {
 	connectionState: MqttClientState;
 	// Computed Values
@@ -19,8 +21,8 @@ type MqttClientContextState = {
 	// Actions
 	disconnect(): Promise<void>;
 	connect(): Promise<void>;
-	addSubscription(subscriptions: MqttSubscription): Promise<void>;
-	removeSubscription(subscriptions: MqttSubscription): Promise<void>;
+	addSubscription<T>(subscriptions: MqttSubscription<T>): Promise<void>;
+	removeSubscription<T>(subscriptions: MqttSubscription<T>): Promise<void>;
 	nextMessage(options: {
 		topic: string;
 		payload: string;
@@ -74,16 +76,30 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 		MqttClientContextState["connectionState"]
 	>(MqttClientState.CONNECTION_CLOSED);
 
-	const [topicSubscriptions, setTopicSubscriptions] = useState<
-		MqttSubscription[]
-	>([]);
+	const topicSubscriptions = useRef<MqttSubscription[]>([]);
+
+	const handleSubscriptions = useCallback(
+		(topic: string, payload: unknown) => {
+			console.log({
+				topicSubscriptions,
+				topic,
+			});
+
+			topicSubscriptions.current.map((subscription) => {
+				if (areTopicsMatching(subscription.topicName, subscription.topicName)) {
+					subscription.handler(payload);
+				}
+			});
+		},
+		[topicSubscriptions],
+	);
 
 	async function connect(): Promise<void> {
 		return new Promise((resolve, reject) => {
 			setConnectionState(MqttClientState.ESTABLISHING_CONNECTION);
 
 			mqttClient.current = mqtt.connect({
-				clientId: "admin-client",
+				clientId: `admin-client-${Date.now()}`,
 				host: import.meta.env.VITE_PUBSUB_HOSTNAME,
 				protocol: "wss",
 				protocolVersion: 4,
@@ -116,10 +132,7 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 				reject();
 			});
 
-			mqttClient.current.on("message", (_topic, _payload, _packet) => {
-				console.log(_topic, _payload, _packet);
-				// TODO: queue into resolver
-			});
+			mqttClient.current?.on("message", handleSubscriptions);
 		});
 	}
 
@@ -150,28 +163,21 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 
 	const addSubscription = useCallback(
 		async (topicSubscription: MqttSubscription) => {
-			const isTopicAlreadySubscribed = topicSubscriptions.some(
-				(subscription) => {
-					return subscription.topicName === topicSubscription.topicName;
-				},
-			);
+			console.log("sub", topicSubscription);
 
-			if (isTopicAlreadySubscribed) {
-				return;
-			}
-			// TODO: add processing for the handler and existing subscription prevent duplicated event handler
-			setTopicSubscriptions((previous) => [...previous, topicSubscription]);
+			topicSubscriptions.current = [...topicSubscriptions.current, topicSubscription]
 
 			mqttClient.current?.subscribe(topicSubscription.topicName, {
 				qos: topicSubscription.qos,
 			});
 		},
-		[topicSubscriptions],
+		// [handleSubscriptions],
+		[],
 	);
 
 	const removeSubscription = useCallback(
 		async (subscriptions: MqttSubscription) => {
-			const topicIndex = topicSubscriptions.findIndex(
+			const topicIndex = topicSubscriptions.current.findIndex(
 				(topic) => topic.topicName === subscriptions.topicName,
 			);
 
@@ -179,17 +185,17 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 				return;
 			}
 
-			const newTopics = [...topicSubscriptions];
+			const newTopics = [...topicSubscriptions.current];
 			newTopics.splice(topicIndex, 1);
 
-			setTopicSubscriptions(newTopics);
+			topicSubscriptions.current = newTopics;
 			mqttClient.current?.unsubscribe(subscriptions.topicName);
 		},
 		[topicSubscriptions],
 	);
 
 	function subscribeToAllTopics() {
-		for (const topic of topicSubscriptions) {
+		for (const topic of topicSubscriptions.current) {
 			mqttClient.current?.subscribe(topic.topicName, {
 				qos: topic.qos,
 			});
