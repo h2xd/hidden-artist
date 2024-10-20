@@ -2,6 +2,7 @@ import { createLazyFileRoute } from "@tanstack/react-router";
 
 import CanvasDraw from "react-canvas-draw";
 import { useMqttClient } from "../contexts/mqtt";
+import { Card } from "../components/ui/card";
 
 export const Route = createLazyFileRoute("/drawer")({
 	component: DrawerPage,
@@ -11,11 +12,12 @@ function DrawerPage() {
 	const mqtt = useMqttClient();
 
 	return (
-		<div>
-			<h1>Drawer Page</h1>
-			<p>Drawer content goes here</p>
-
+		<Card className="w-[502px] h-[502px] rounded-none shadow-lg mx-auto mt-8">
 			<CanvasDraw
+				canvasWidth={500}
+				canvasHeight={500}
+				gridSizeX={20}
+				gridSizeY={20}
 				onChange={(event) => {
 					console.log("event", event);
 
@@ -28,6 +30,6 @@ function DrawerPage() {
 					});
 				}}
 			/>
-		</div>
+		</Card>
 	);
 }
