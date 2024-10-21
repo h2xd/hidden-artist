@@ -10,24 +10,34 @@ export const Route = createLazyFileRoute("/admin")({
 });
 
 function AdminPage() {
-	const { isConnected, nextMessage } = useMqttClient();
-	const canvas = useRef<CanvasDraw>();
+	const { nextMessage } = useMqttClient();
+	const canvas1 = useRef<CanvasDraw>();
+	const canvas2 = useRef<CanvasDraw>();
 
 	const mqtt = useMqttClient();
 
 	useEffect(() => {
 		mqtt.addSubscription<Uint8Array>({
-			topicName: "12345/username/draw",
+			topicName: "12345/+/draw",
 			qos: 0,
-			handler(message) {
+			handler(topic, message) {
 				console.log("message", message);
 
 				const saveData = new TextDecoder().decode(message);
 
 				console.log("image", saveData);
 
-				canvas.current?.clear()
-				canvas.current?.loadSaveData(saveData, true)
+				console.log("topic", topic);
+
+				if (topic === "12345/1/draw") {
+					canvas1.current?.clear();
+					canvas1.current?.loadSaveData(saveData, true);
+				}
+
+				if (topic === "12345/2/draw") {
+					canvas2.current?.clear();
+					canvas2.current?.loadSaveData(saveData, true);
+				}
 			},
 		});
 	}, [mqtt.addSubscription]);
@@ -35,9 +45,6 @@ function AdminPage() {
 	return (
 		<div>
 			<h1>Admin Page</h1>
-			<p>
-				MQTT connection status: {isConnected ? "Connected" : "Disconnected"}
-			</p>
 
 			<Button
 				variant="destructive"
@@ -52,7 +59,10 @@ function AdminPage() {
 				Click me
 			</Button>
 
-			<CanvasDraw ref={canvas} />
+			<div className="flex flex-row">
+				<CanvasDraw ref={canvas1} />
+				<CanvasDraw ref={canvas2} />
+			</div>
 		</div>
 	);
 }

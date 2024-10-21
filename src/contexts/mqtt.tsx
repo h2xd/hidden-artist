@@ -42,7 +42,7 @@ export type MqttClientState =
 export type MqttSubscription<T = unknown> = {
 	topicName: string;
 	qos: MqttQualityOfService;
-	handler: (payload: T) => unknown;
+	handler: (topic, payload: T) => unknown;
 };
 
 export type MqttQualityOfService = 0 | 1 | 2;
@@ -87,7 +87,7 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 
 			topicSubscriptions.current.map((subscription) => {
 				if (areTopicsMatching(subscription.topicName, subscription.topicName)) {
-					subscription.handler(payload);
+					subscription.handler(topic, payload);
 				}
 			});
 		},
@@ -165,7 +165,10 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 		async (topicSubscription: MqttSubscription) => {
 			console.log("sub", topicSubscription);
 
-			topicSubscriptions.current = [...topicSubscriptions.current, topicSubscription]
+			topicSubscriptions.current = [
+				...topicSubscriptions.current,
+				topicSubscription,
+			];
 
 			mqttClient.current?.subscribe(topicSubscription.topicName, {
 				qos: topicSubscription.qos,
