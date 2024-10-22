@@ -12,7 +12,7 @@ export function Header() {
 	const { isConnected } = useMqttClient();
 
 	return (
-		<header className="fixed top-2 left-[50%] translate-x-[-50%] shadow-md rounded-md flex flex-row divide-x border border-gray-100 dark:border-gray-700">
+		<header className="fixed top-2 left-[50%] translate-x-[-50%] shadow-md rounded-md flex flex-row divide-x border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-950 dark:shadow-neutral-800">
 			<div className="mr-[1px]">
 				<Logo />
 			</div>

@@ -14,6 +14,7 @@ import {
 import areTopicsMatching from "mqtt-match";
 
 type MqttClientContextState = {
+	uuid: string;
 	connectionState: MqttClientState;
 	// Computed Values
 	isConnected: boolean;
@@ -21,8 +22,8 @@ type MqttClientContextState = {
 	// Actions
 	disconnect(): Promise<void>;
 	connect(): Promise<void>;
-	addSubscription<T>(subscriptions: MqttSubscription<T>): Promise<void>;
-	removeSubscription<T>(subscriptions: MqttSubscription<T>): Promise<void>;
+	addSubscription(subscriptions: MqttSubscription): Promise<void>;
+	removeSubscription(subscriptions: MqttSubscription): Promise<void>;
 	nextMessage(options: {
 		topic: string;
 		payload: string;
@@ -39,10 +40,10 @@ export const MqttClientState = {
 export type MqttClientState =
 	(typeof MqttClientState)[keyof typeof MqttClientState];
 
-export type MqttSubscription<T = unknown> = {
+export type MqttSubscription = {
 	topicName: string;
 	qos: MqttQualityOfService;
-	handler: (topic, payload: T) => unknown;
+	handler: (topic: string, payload: string) => unknown;
 };
 
 export type MqttQualityOfService = 0 | 1 | 2;
@@ -51,6 +52,7 @@ export type MqttQualityOfService = 0 | 1 | 2;
 export type MqttProtocolVersion = 4;
 
 const MQTT_CLIENT_DEFAULT_STATE = {
+	uuid: "",
 	connectionState: MqttClientState.CONNECTION_CLOSED,
 	isConnected: false,
 	isConnecting: false,
@@ -71,6 +73,7 @@ export const MqttClientContext = createContext<MqttClientContextState>(
 
 export function MqttConnectionProvider({ children }: PropsWithChildren) {
 	const mqttClient = useRef<MqttClient | undefined>(undefined);
+	const uuid = useRef(window.crypto.randomUUID());
 
 	const [connectionState, setConnectionState] = useState<
 		MqttClientContextState["connectionState"]
@@ -79,15 +82,10 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 	const topicSubscriptions = useRef<MqttSubscription[]>([]);
 
 	const handleSubscriptions = useCallback(
-		(topic: string, payload: unknown) => {
-			console.log({
-				topicSubscriptions,
-				topic,
-			});
-
+		(topic: string, payload: Uint8Array) => {
 			topicSubscriptions.current.map((subscription) => {
 				if (areTopicsMatching(subscription.topicName, subscription.topicName)) {
-					subscription.handler(topic, payload);
+					subscription.handler(topic, new TextDecoder().decode(payload));
 				}
 			});
 		},
@@ -99,7 +97,7 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 			setConnectionState(MqttClientState.ESTABLISHING_CONNECTION);
 
 			mqttClient.current = mqtt.connect({
-				clientId: `admin-client-${Date.now()}`,
+				clientId: `client-${uuid.current}`,
 				host: import.meta.env.VITE_PUBSUB_HOSTNAME,
 				protocol: "wss",
 				protocolVersion: 4,
@@ -163,8 +161,6 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 
 	const addSubscription = useCallback(
 		async (topicSubscription: MqttSubscription) => {
-			console.log("sub", topicSubscription);
-
 			topicSubscriptions.current = [
 				...topicSubscriptions.current,
 				topicSubscription,
@@ -228,6 +224,7 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 	}, []);
 
 	const value = {
+		uuid: uuid.current,
 		connectionState,
 		connect,
 		disconnect,

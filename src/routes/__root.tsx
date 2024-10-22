@@ -2,6 +2,7 @@ import { Outlet, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { ThemeProvider } from "../components/theme-provider";
 import { MqttConnectionProvider } from "../contexts/mqtt";
+import { Toaster } from "@/components/ui/toaster";
 
 import { Header } from "../components/compositions/Header/Header";
 
@@ -23,11 +24,12 @@ function RootRoute() {
 
 			<MqttConnectionProvider>
 				<Header />
-				<main className="flex flex-col flex-grow h-full mt-8">
+				<main className="flex flex-col flex-grow h-full mt-16">
 					<Outlet />
 				</main>
 				<TanStackRouterDevtools />
 			</MqttConnectionProvider>
+			<Toaster />
 		</ThemeProvider>
 	);
 }
