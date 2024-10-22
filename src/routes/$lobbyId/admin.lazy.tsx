@@ -41,6 +41,17 @@ function AdminPage() {
 		[],
 	);
 
+	function revalidateConnections() {
+		setCurrentConnections([]);
+		window.setTimeout(() => {
+			nextMessage({
+				topic: `lobby/${lobbyId}/connection`,
+				payload: "ping",
+				qos: 0,
+			});
+		}, 500);
+	}
+
 	useEffect(() => {
 		const drawSubscription: MqttSubscription = {
 			topicName: "lobby/+/+/draw",
@@ -85,14 +96,14 @@ function AdminPage() {
 
 				setCurrentConnections((currentConnections) => {
 					return currentConnections.map((user) => {
-						if (user.uuid === result.userId) {
-							return {
-								...user,
-								username: message,
-							};
+						if (user.uuid !== result.userId) {
+							return user;
 						}
 
-						return user;
+						return {
+							...user,
+							username: message,
+						};
 					});
 				});
 			},
@@ -125,7 +136,7 @@ function AdminPage() {
 								...currentConnections,
 								{
 									uuid: result.userId,
-									username: message,
+									username: result.userId,
 									canvas: createRef<CanvasDraw>(),
 								},
 							]);
@@ -157,7 +168,9 @@ function AdminPage() {
 						Count: {currentConnections.length}
 						<ul>
 							{currentConnections.map((connection) => (
-								<li key={connection.uuid}>{connection.username}</li>
+								<li key={connection.uuid}>
+									{connection.username || connection.uuid}
+								</li>
 							))}
 						</ul>
 					</div>
@@ -171,7 +184,7 @@ function AdminPage() {
 
 								<div className="flex flex-row gap-1">
 									{sessionRunning ? (
-										<AlertDialog>
+										<AlertDialog key="stop-session">
 											<AlertDialogTrigger asChild>
 												<Button variant="default">Stop Session</Button>
 											</AlertDialogTrigger>
@@ -189,8 +202,6 @@ function AdminPage() {
 													<AlertDialogCancel>Cancel</AlertDialogCancel>
 													<AlertDialogAction
 														onClick={(event) => {
-															event.preventDefault();
-
 															nextMessage({
 																topic: `lobby/${lobbyId}/navigate`,
 																payload: "lobby",
@@ -203,6 +214,7 @@ function AdminPage() {
 															});
 
 															setSessionRunning(false);
+															revalidateConnections();
 														}}
 													>
 														Continue
@@ -238,13 +250,7 @@ function AdminPage() {
 										onClick={(event) => {
 											event.preventDefault();
 
-											setCurrentConnections([]);
-
-											nextMessage({
-												topic: `lobby/${lobbyId}/connection`,
-												payload: "ping",
-												qos: 2,
-											});
+											revalidateConnections();
 
 											toast({
 												title: `Revalidation request sent for ${lobbyId}`,
@@ -256,6 +262,46 @@ function AdminPage() {
 										Revalidate
 									</Button>
 								</div>
+
+								<AlertDialog key="enforce-restart">
+									<AlertDialogTrigger asChild>
+										<Button variant="destructive">Enforce Restart</Button>
+									</AlertDialogTrigger>
+									<AlertDialogContent>
+										<AlertDialogHeader>
+											<AlertDialogTitle>
+												Are you absolutely sure?
+											</AlertDialogTitle>
+											<AlertDialogDescription>
+												This action cannot be undone. This will permanently
+												delete the current drawings.
+											</AlertDialogDescription>
+										</AlertDialogHeader>
+										<AlertDialogFooter>
+											<AlertDialogCancel>Cancel</AlertDialogCancel>
+											<AlertDialogAction
+												onClick={(event) => {
+													nextMessage({
+														topic: `lobby/${lobbyId}/navigate`,
+														payload: "lobby",
+														qos: 2,
+													});
+
+													toast({
+														title: "Session stopped",
+														description: "The session has been stopped",
+													});
+
+													setSessionRunning(false);
+
+													revalidateConnections();
+												}}
+											>
+												Continue
+											</AlertDialogAction>
+										</AlertDialogFooter>
+									</AlertDialogContent>
+								</AlertDialog>
 							</div>
 						</ResizablePanel>
 						<ResizableHandle />

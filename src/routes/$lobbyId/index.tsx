@@ -34,7 +34,7 @@ function LobbyPage() {
 			payload: username,
 			qos: 2,
 		});
-	}, []);
+	}, [username]);
 
 	useEffect(() => {
 		const lobbyPongSubscription: MqttSubscription = {
