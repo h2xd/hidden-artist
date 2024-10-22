@@ -23,6 +23,7 @@ import {
 	AlertDialogTrigger,
 } from "../../components/ui/alert-dialog";
 import { Connection } from "../../@types/connection";
+import { lobbyPingController } from "../../contexts/mqttControllersDictonary";
 
 export const Route = createLazyFileRoute("/$lobbyId/admin")({
 	component: AdminPage,
@@ -157,6 +158,21 @@ function AdminPage() {
 				}
 			},
 		});
+
+		lobbyPingController.addHandler((topicParameters, payload) => {
+			console.log("ping handler", { topicParameters, payload });
+		});
+
+		mqtt.addMqttNetworkController(lobbyPingController);
+
+		window.setTimeout(() => {
+			console.log("send message");
+			nextMessage({
+				topic: `lobby/${lobbyId}/${mqtt.uuid}/ping`,
+				payload: JSON.stringify({ username: "hello" }),
+				qos: 0,
+			});
+		}, 5000);
 	}, []);
 
 	return (
