@@ -11,7 +11,7 @@ import {
 	useEffect,
 } from "react";
 
-import { exec, clean, type MqttParameters, matches } from "mqtt-pattern";
+import { exec, clean, type MqttParameters, matches, fill } from "mqtt-pattern";
 
 import areTopicsMatching from "mqtt-match";
 
@@ -31,7 +31,9 @@ type MqttClientContextState = {
 		payload: string;
 		qos: MqttQualityOfService;
 	}): Promise<void>;
-	addMqttNetworkController: (controller: MqttNetworkController) => void;
+	addMqttNetworkController: (
+		controller: ReturnType<typeof createMqttNetworkController<string, string>>,
+	) => void;
 };
 
 export const MqttClientState = {
@@ -85,12 +87,16 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 
 	const topicSubscriptions = useRef<MqttSubscription[]>([]);
 	const mqttNetworkControllers = useRef<
-		MqttNetworkController<string, string>[]
+		ReturnType<typeof createMqttNetworkController<string, string>>[]
 	>([]);
 
 	function addMqttNetworkController(
 		controller: MqttNetworkController<string, string>,
 	) {
+		if (mqttNetworkControllers.current.includes(controller)) {
+			return;
+		}
+
 		console.log("add controller", controller, clean(controller.topicName));
 
 		mqttNetworkControllers.current = [
@@ -114,13 +120,19 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 			});
 
 			mqttNetworkControllers.current.map((controller) => {
+				console.log(
+					"controller",
+					controller.topicName,
+					topic,
+					matches(controller.topicName, topic),
+				);
 				if (matches(controller.topicName, topic)) {
 					controller.handlers.map((handler) => {
 						const result = exec(controller.topicName, topic);
 
 						handler(
 							result || {},
-							controller.decode(new TextDecoder().decode(payload)),
+							controller.decodePayload(new TextDecoder().decode(payload)),
 						);
 					});
 				}
@@ -243,6 +255,7 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 		payload: string;
 		qos?: MqttQualityOfService;
 	}) {
+		console.log({ options });
 		if (!mqttClient.current) {
 			return;
 		}
@@ -296,23 +309,39 @@ type MqttNetworkConnectionHandler<T, P> = (
 
 export function createMqttNetworkController<T extends string, P>({
 	topicName,
-	decode,
-	encode,
+	decodePayload,
+	encodePayload,
 	qos,
 }: {
 	topicName: T;
 	qos: 0 | 1 | 2;
-	encode: (payload: P) => string;
-	decode: (payload: string) => P;
+	encodePayload: (payload: P) => string;
+	decodePayload: (payload: string) => P;
 }) {
-	let handlers: MqttNetworkConnectionHandler<T, any>[] = [];
+	let handlers: MqttNetworkConnectionHandler<T, P>[] = [];
 
 	function addHandler(handler: MqttNetworkConnectionHandler<T, P>) {
 		handlers.push(handler);
+
+		return () => {
+			removeHandler(handler);
+		};
 	}
 
 	function removeHandler(handler: MqttNetworkConnectionHandler<T, P>) {
+		console.log("remove handler");
 		handlers = handlers.filter((h) => h !== handler);
+	}
+
+	function sendMessage(
+		context: ReturnType<typeof useMqttClient>,
+		options: { params: MqttParameters<T>; payload: P },
+	) {
+		context.nextMessage({
+			topic: fill(topicName, options.params),
+			payload: encodePayload(options.payload),
+			qos,
+		});
 	}
 
 	return {
@@ -321,11 +350,8 @@ export function createMqttNetworkController<T extends string, P>({
 		qos,
 		addHandler,
 		removeHandler,
-		encode,
-		decode,
+		encodePayload,
+		decodePayload,
+		sendMessage,
 	};
 }
-
-type MqttNetworkController<T, P> = ReturnType<
-	typeof createMqttNetworkController<T, P>
->;

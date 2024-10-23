@@ -3,7 +3,13 @@ import { exec } from "mqtt-pattern";
 import { Button } from "../../components/ui/button";
 import { MqttSubscription, useMqttClient } from "../../contexts/mqtt";
 
-import { MutableRefObject, createRef, useEffect, useState } from "react";
+import {
+	MutableRefObject,
+	createRef,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import CanvasDraw from "react-canvas-draw";
 import {
 	ResizableHandle,
@@ -23,7 +29,10 @@ import {
 	AlertDialogTrigger,
 } from "../../components/ui/alert-dialog";
 import { Connection } from "../../@types/connection";
-import { lobbyPingController } from "../../contexts/mqttControllersDictonary";
+import {
+	lobbyPingController,
+	lobbyPongController,
+} from "../../contexts/mqttControllersDictonary";
 
 export const Route = createLazyFileRoute("/$lobbyId/admin")({
 	component: AdminPage,
@@ -38,19 +47,23 @@ function AdminPage() {
 
 	const mqtt = useMqttClient();
 
-	const [currentConnections, setCurrentConnections] = useState<Connection[]>(
-		[],
-	);
+	const connections = useRef<Connection[]>([]);
+	const [_, setCount] = useState(0);
 
-	function revalidateConnections() {
-		setCurrentConnections([]);
+	function rerender() {
+		setCount((count) => count + 1);
+	}
+
+	function revalidateConnections(delay = 1000) {
+		connections.current = [];
+		rerender();
+
 		window.setTimeout(() => {
-			nextMessage({
-				topic: `lobby/${lobbyId}/connection`,
-				payload: "ping",
-				qos: 0,
+			lobbyPingController.sendMessage(mqtt, {
+				params: { lobbyId },
+				payload: "",
 			});
-		}, 500);
+		}, delay);
 	}
 
 	useEffect(() => {
@@ -64,7 +77,7 @@ function AdminPage() {
 					return;
 				}
 
-				const connection = currentConnections.find(
+				const connection = connections.current.find(
 					(connection) => connection.uuid === result.userId,
 				);
 
@@ -77,102 +90,47 @@ function AdminPage() {
 			},
 		};
 
-		const usernameSubscription: MqttSubscription = {
-			topicName: "lobby/+/+/username",
-			qos: 2,
-			handler(topic, message) {
-				const result = exec("lobby/+lobbyId/+userId/username", topic);
-
-				if (!result) {
-					return;
-				}
-
-				const connection = currentConnections.find(
-					(connection) => connection.uuid === result.userId,
-				);
-
-				if (!connection) {
-					return;
-				}
-
-				setCurrentConnections((currentConnections) => {
-					return currentConnections.map((user) => {
-						if (user.uuid !== result.userId) {
-							return user;
-						}
-
-						return {
-							...user,
-							username: message,
-						};
-					});
-				});
-			},
-		};
-
 		mqtt.addSubscription(drawSubscription);
-		mqtt.addSubscription(usernameSubscription);
 
 		return () => {
 			mqtt.removeSubscription(drawSubscription);
-			mqtt.removeSubscription(drawSubscription);
 		};
-	}, [currentConnections]);
+	}, [connections.current]);
 
 	useEffect(() => {
-		mqtt.addSubscription({
-			topicName: "lobby/+/+/connection",
-			qos: 2,
-			handler(topic, message) {
-				const result = exec("lobby/+lobbyId/+userId/connection", topic);
+		const cleanupLobbyPongController = lobbyPongController.addHandler(
+			(topicParameters, payload) => {
+				const connectionExists = connections.current.find(
+					(connection) => connection.uuid === topicParameters.userId,
+				);
 
-				switch (message) {
-					case "connect":
-					case "pong": {
-						if (
-							result &&
-							currentConnections.every((user) => user.uuid !== result.userId)
-						) {
-							setCurrentConnections((currentConnections) => [
-								...currentConnections,
-								{
-									uuid: result.userId,
-									username: result.userId,
-									canvas: createRef<CanvasDraw>(),
-								},
-							]);
-						}
-
-						break;
-					}
-					case "disconnect": {
-						if (result) {
-							setCurrentConnections((currentConnections) =>
-								currentConnections.filter(
-									(user) => user.uuid !== result.userId,
-								),
-							);
-						}
-						break;
-					}
+				if (!connectionExists) {
+					connections.current = [
+						...connections.current,
+						{ uuid: topicParameters.userId, username: payload.username },
+					];
 				}
+
+				connections.current = connections.current.map((connection) => {
+					if (connection.uuid !== topicParameters.userId) {
+						return connection;
+					}
+
+					return {
+						...connection,
+						username: payload.username,
+					};
+				});
+
+				setCount((count) => count + 1);
 			},
-		});
+		);
 
-		lobbyPingController.addHandler((topicParameters, payload) => {
-			console.log("ping handler", { topicParameters, payload });
-		});
+		mqtt.addMqttNetworkController(lobbyPongController);
 
-		mqtt.addMqttNetworkController(lobbyPingController);
-
-		window.setTimeout(() => {
-			console.log("send message");
-			nextMessage({
-				topic: `lobby/${lobbyId}/${mqtt.uuid}/ping`,
-				payload: JSON.stringify({ username: "hello" }),
-				qos: 0,
-			});
-		}, 5000);
+		return () => {
+			cleanupLobbyPongController();
+		};
 	}, []);
 
 	return (
@@ -181,9 +139,9 @@ function AdminPage() {
 				<ResizablePanel defaultSize={50}>
 					<div className="h-[300px]">
 						<h2 class="">Current Connections</h2>
-						Count: {currentConnections.length}
+						Count: {connections.current.length}
 						<ul>
-							{currentConnections.map((connection) => (
+							{connections.current.map((connection) => (
 								<li key={connection.uuid}>
 									{connection.username || connection.uuid}
 								</li>
@@ -230,6 +188,7 @@ function AdminPage() {
 															});
 
 															setSessionRunning(false);
+
 															revalidateConnections();
 														}}
 													>
@@ -266,7 +225,7 @@ function AdminPage() {
 										onClick={(event) => {
 											event.preventDefault();
 
-											revalidateConnections();
+											revalidateConnections(0);
 
 											toast({
 												title: `Revalidation request sent for ${lobbyId}`,
@@ -329,7 +288,7 @@ function AdminPage() {
 			<div className="flex flex-row">
 				hello
 				<div className="scale-50">
-					{currentConnections.map((connection) => (
+					{connections.current.map((connection) => (
 						<CanvasDraw
 							canvasWidth={500}
 							canvasHeight={500}

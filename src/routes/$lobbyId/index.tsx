@@ -4,13 +4,17 @@ import {
 	useParams,
 } from "@tanstack/react-router";
 import { MqttSubscription, useMqttClient } from "../../contexts/mqtt";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { useToast } from "../../hooks/use-toast";
 import { Connection } from "../../@types/connection";
-import { exec } from "mqtt-pattern";
+
+import {
+	lobbyPingController,
+	lobbyPongController,
+} from "../../contexts/mqttControllersDictonary";
 
 export const Route = createFileRoute("/$lobbyId/")({
 	component: LobbyPage,
@@ -22,48 +26,21 @@ function LobbyPage() {
 	const mqtt = useMqttClient();
 	const { toast } = useToast();
 
+	const usernameRef = useRef("");
 	const [username, setUsername] = useState("");
 
-	const [currentConnections, setCurrentConnections] = useState<Connection[]>(
-		[],
-	);
+	const connections = useRef<Connection[]>([]);
+	const [_, setCount] = useState(0);
 
-	const sendUsername = useCallback(() => {
-		mqtt.nextMessage({
-			topic: `lobby/${lobbyId}/${mqtt.uuid}/username`,
-			payload: username,
-			qos: 2,
-		});
+	const rerender = useCallback(() => {
+		setCount((count) => count + 1);
+	}, []);
+
+	useEffect(() => {
+		usernameRef.current = username;
 	}, [username]);
 
 	useEffect(() => {
-		const lobbyPongSubscription: MqttSubscription = {
-			topicName: `lobby/${lobbyId}/connection`,
-			qos: 2,
-			handler(topic, message) {
-				console.log("topic", topic, message);
-				switch (message) {
-					case "ping": {
-						setCurrentConnections([]);
-
-						window.setTimeout(() => {
-							mqtt.nextMessage({
-								topic: `lobby/${lobbyId}/${mqtt.uuid}/connection`,
-								payload: "pong",
-								qos: 2,
-							});
-						}, 500);
-
-						window.setTimeout(() => {
-							sendUsername();
-						}, 500);
-
-						break;
-					}
-				}
-			},
-		};
-
 		const lobbyNavigateSubscription: MqttSubscription = {
 			topicName: `lobby/${lobbyId}/navigate`,
 			qos: 2,
@@ -79,108 +56,74 @@ function LobbyPage() {
 		};
 
 		mqtt.addSubscription(lobbyNavigateSubscription);
-		mqtt.addSubscription(lobbyPongSubscription);
 
 		return () => {
-			mqtt.nextMessage({
-				topic: `lobby/${lobbyId}/${mqtt.uuid}/connect`,
-				payload: "disconnect",
-				qos: 2,
-			});
-
 			mqtt.removeSubscription(lobbyNavigateSubscription);
-			mqtt.removeSubscription(lobbyPongSubscription);
 		};
 	}, [lobbyId]);
 
 	useEffect(() => {
-		const connectionSubscription: MqttSubscription = {
-			topicName: "lobby/+/+/connection",
-			qos: 2,
-			handler(topic, message) {
-				const result = exec("lobby/+lobbyId/+userId/connection", topic);
+		if (!mqtt.isConnected) {
+			return;
+		}
 
-				switch (message) {
-					case "connect":
-					case "pong": {
-						if (
-							result &&
-							currentConnections.every((user) => user.uuid !== result.userId)
-						) {
-							setCurrentConnections((currentConnections) => [
-								...currentConnections,
-								{
-									uuid: result.userId,
-									username: message,
-								},
-							]);
-						}
+		function sendPong() {
+			connections.current = [];
+			rerender();
 
-						break;
-					}
-					case "disconnect": {
-						if (result) {
-							setCurrentConnections((currentConnections) =>
-								currentConnections.filter(
-									(user) => user.uuid !== result.userId,
-								),
-							);
-						}
-						break;
-					}
-				}
-			},
-		};
+			lobbyPongController.sendMessage(mqtt, {
+				params: { lobbyId, userId: mqtt.uuid },
+				payload: { username: usernameRef.current || mqtt.uuid },
+			});
+		}
 
-		const usernameSubscription: MqttSubscription = {
-			topicName: "lobby/+/+/username",
-			qos: 2,
-			handler(topic, message) {
-				const result = exec("lobby/+lobbyId/+userId/username", topic);
+		const cleanUpLobbyPingController = lobbyPingController.addHandler(() => {
+			sendPong();
+		});
 
-				if (!result) {
-					return;
-				}
-
-				const connection = currentConnections.find(
-					(connection) => connection.uuid === result.userId,
+		const cleanUpPongController = lobbyPongController.addHandler(
+			(topicParameters, payload) => {
+				const connectionExists = connections.current.find(
+					(connection) => connection.uuid === topicParameters.userId,
 				);
 
-				if (!connection) {
-					return;
+				if (!connectionExists) {
+					connections.current = [
+						...connections.current,
+						{ uuid: topicParameters.userId, username: payload.username },
+					];
 				}
 
-				setCurrentConnections((currentConnections) => {
-					return currentConnections.map((user) => {
-						if (user.uuid === result.userId) {
-							return {
-								...user,
-								username: message || user.uuid,
-							};
-						}
+				connections.current = connections.current.map((connection) => {
+					if (connection.uuid !== topicParameters.userId) {
+						return connection;
+					}
 
-						return user;
-					});
+					return {
+						...connection,
+						username: payload.username,
+					};
 				});
-			},
-		};
 
-		mqtt.addSubscription(usernameSubscription);
-		mqtt.addSubscription(connectionSubscription);
+				rerender();
+			},
+		);
+
+		mqtt.addMqttNetworkController(lobbyPingController);
+		mqtt.addMqttNetworkController(lobbyPongController);
+
+		lobbyPingController.sendMessage(mqtt, {
+			params: { lobbyId },
+			payload: "",
+		});
+
+		sendPong();
 
 		return () => {
-			mqtt.removeSubscription(usernameSubscription);
-			mqtt.removeSubscription(connectionSubscription);
+			cleanUpLobbyPingController();
+			cleanUpPongController();
 		};
-	}, [currentConnections]);
-
-	useEffect(() => {
-		mqtt.nextMessage({
-			topic: `lobby/${lobbyId}/${mqtt.uuid}/connection`,
-			payload: "connect",
-			qos: 2,
-		});
-	}, []);
+	}, [mqtt.isConnected]);
 
 	return (
 		<div className="mx-auto min-w-[500px]">
@@ -199,10 +142,9 @@ function LobbyPage() {
 						description: `Hello ${username}! 💍`,
 					});
 
-					mqtt.nextMessage({
-						topic: `lobby/${lobbyId}/${mqtt.uuid}/username`,
-						payload: username,
-						qos: 2,
+					lobbyPongController.sendMessage(mqtt, {
+						params: { lobbyId, userId: mqtt.uuid },
+						payload: { username },
 					});
 				}}
 			>
@@ -226,7 +168,7 @@ function LobbyPage() {
 				<h2 className="text-lg font-bold">Participants</h2>
 
 				<ul className="mt-4 flex flex-col divide-y gap-">
-					{currentConnections.map((connection) => (
+					{connections.current.map((connection) => (
 						<li
 							key={connection.uuid}
 							className={`${connection.uuid === mqtt.uuid ? "font-bold" : "text-gray-700 dark:text-gray-300"}`}

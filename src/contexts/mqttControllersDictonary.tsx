@@ -1,17 +1,42 @@
 import { createMqttNetworkController } from "./mqtt";
 
+const stringHandlers = {
+	encodePayload(payload: string) {
+		return payload;
+	},
+	decodePayload(payload: string) {
+		return payload;
+	},
+};
+
+const jsonHandlers = {
+	encodePayload(payload: string) {
+		return payload;
+	},
+	decodePayload(payload: string) {
+		return payload;
+	},
+};
+
 export const lobbyPingController = createMqttNetworkController<
-	"lobby/+lobbyid/+uuid/ping",
-	{
-		username: string;
-	}
+	"lobby/+lobbyId/ping",
+	string
 >({
-	topicName: "lobby/+lobbyid/+uuid/ping",
+	topicName: "lobby/+lobbyId/ping",
 	qos: 2,
-	encode(payload) {
+	...stringHandlers,
+});
+
+export const lobbyPongController = createMqttNetworkController<
+	"lobby/+lobbyId/+userId/pong",
+	{ username: string }
+>({
+	topicName: "lobby/+lobbyId/+userId/pong",
+	qos: 2,
+	encodePayload(payload) {
 		return JSON.stringify(payload);
 	},
-	decode(payload) {
+	decodePayload(payload) {
 		return JSON.parse(payload);
 	},
 });
