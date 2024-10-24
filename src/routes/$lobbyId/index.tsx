@@ -127,8 +127,6 @@ function LobbyPage() {
 			payload: "",
 		});
 
-		sendPong();
-
 		return () => {
 			cleanUpLobbyPingController();
 			cleanUpPongController();

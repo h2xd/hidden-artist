@@ -121,7 +121,7 @@ function AdminPage() {
 	}, []);
 
 	return (
-		<div>
+		<div className="mt-16">
 			<ResizablePanelGroup direction="horizontal" className="border">
 				<ResizablePanel defaultSize={50}>
 					<div className="h-[300px]">
@@ -278,7 +278,7 @@ function AdminPage() {
 			</ResizablePanelGroup>
 
 			<div className="flex flex-row">
-				<div>
+				<div className="object-scale-down w-[100px] h-[100px] scale-[0.2] relative top-[-40px] left-[-40px]">
 					{connections.current.map((connection) => (
 						<CanvasDraw
 							canvasWidth={500}

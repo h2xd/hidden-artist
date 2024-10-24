@@ -24,7 +24,7 @@ function RootRoute() {
 
 			<MqttConnectionProvider>
 				<Header />
-				<main className="flex flex-col flex-grow h-full mt-16">
+				<main className="flex flex-col flex-grow h-full">
 					<Outlet />
 				</main>
 				<TanStackRouterDevtools />
