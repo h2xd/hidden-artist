@@ -2,6 +2,7 @@ import {
 	MutableRefObject,
 	createRef,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
@@ -27,8 +28,11 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 	const connections = useRef<Connection[]>([]);
 
 	const [matrix, setMatrix] = useState<Connection[][]>([]);
+	const [idsMatrix, setIdsMatrix] = useState<string[][]>([]);
 
 	const [columns, setColumns] = useState(1);
+
+	console.log({ idsMatrix });
 
 	function updateMatrix() {
 		console.log("updateMatrix");
@@ -39,7 +43,26 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 		}
 
 		setMatrix(matrix);
+		setIdsMatrix(matrix.map((row) => row.map((connection) => connection.uuid)));
 	}
+
+	const neighbors = useMemo(() => {
+		const selfRow = matrix.findIndex((row) =>
+			row.find((connection) => connection.uuid === mqtt.uuid),
+		);
+		const selfColumn = matrix[selfRow]?.findIndex(
+			(connection) => connection.uuid === mqtt.uuid,
+		);
+
+		return {
+			top: matrix[selfRow - 1]?.[selfColumn]?.uuid,
+			right: matrix[selfRow]?.[selfColumn + 1]?.uuid,
+			bottom: matrix[selfRow + 1]?.[selfColumn]?.uuid,
+			left: matrix[selfRow]?.[selfColumn - 1]?.uuid,
+		};
+	}, [matrix, mqtt.uuid]);
+
+	console.log(neighbors);
 
 	useEffect(updateMatrix, [columns, connections.current]);
 
@@ -117,5 +140,8 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 		columns,
 		setColumns,
 		matrix,
+		idsMatrix,
+		setIdsMatrix,
+		neighbors,
 	};
 }

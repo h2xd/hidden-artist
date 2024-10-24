@@ -24,6 +24,7 @@ import {
 	lobbyNavigateController,
 	lobbyPingController,
 	lobbyPongController,
+	startGameController,
 } from "../../contexts/mqttControllersDictonary";
 import { useConnectionMatrix } from "../../hooks/useConnectionMatrix";
 
@@ -47,7 +48,9 @@ function LobbyPage() {
 		setCount((count) => count + 1);
 	}, []);
 
-	const { connections, reset } = useConnectionMatrix({ update: rerender });
+	const { connections, reset, setIdsMatrix, neighbors } = useConnectionMatrix({
+		update: rerender,
+	});
 
 	useEffect(() => {
 		usernameRef.current = username;
@@ -73,8 +76,16 @@ function LobbyPage() {
 			},
 		);
 
+		const cleanUpStartGameController = startGameController.addHandler(
+			(_, { matrix }) => {
+				setActiveView("drawer");
+				setIdsMatrix(matrix);
+			},
+		);
+
 		mqtt.addMqttNetworkController(lobbyPingController);
 		mqtt.addMqttNetworkController(lobbyNavigateController);
+		mqtt.addMqttNetworkController(startGameController);
 
 		lobbyPingController.sendMessage(mqtt, {
 			params: { lobbyId },
@@ -84,6 +95,7 @@ function LobbyPage() {
 		return () => {
 			cleanUpLobbyPingController();
 			cleanUpNavigateController();
+			cleanUpStartGameController();
 		};
 	}, [mqtt.isConnected]);
 
@@ -147,7 +159,51 @@ function LobbyPage() {
 		</div>
 	) : (
 		<>
-			<Card className="w-[502px] h-[502px] rounded-none shadow-lg mx-auto">
+			{neighbors.top && (
+				<div className="fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-150%] opacity-80">
+					<CanvasDraw
+						canvasWidth={500}
+						canvasHeight={500}
+						gridSizeX={20}
+						gridSizeY={20}
+					/>
+				</div>
+			)}
+
+			{neighbors.bottom && (
+				<div className="fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[50%] opacity-80">
+					<CanvasDraw
+						canvasWidth={500}
+						canvasHeight={500}
+						gridSizeX={20}
+						gridSizeY={20}
+					/>
+				</div>
+			)}
+
+			{neighbors.left && (
+				<div className="fixed top-[50%] left-[50%] translate-x-[-150%] translate-y-[-50%] opacity-80">
+					<CanvasDraw
+						canvasWidth={500}
+						canvasHeight={500}
+						gridSizeX={20}
+						gridSizeY={20}
+					/>
+				</div>
+			)}
+
+			{neighbors.right && (
+				<div className="fixed top-[50%] left-[50%] translate-x-[50%] translate-y-[-50%] opacity-80">
+					<CanvasDraw
+						canvasWidth={500}
+						canvasHeight={500}
+						gridSizeX={20}
+						gridSizeY={20}
+					/>
+				</div>
+			)}
+
+			<Card className="w-[502px] h-[502px] rounded-none fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] shadow-none">
 				<CanvasDraw
 					canvasWidth={500}
 					canvasHeight={500}

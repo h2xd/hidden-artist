@@ -23,6 +23,7 @@ import {
 import {
 	lobbyNavigateController,
 	lobbyPingController,
+	startGameController,
 } from "../../contexts/mqttControllersDictonary";
 import { useToast } from "../../hooks/use-toast";
 import { useConnectionMatrix } from "../../hooks/useConnectionMatrix";
@@ -46,7 +47,7 @@ function AdminPage() {
 
 	const [_, setCount] = useState(0);
 
-	const { connections, reset, matrix, columns, setColumns } =
+	const { connections, reset, matrix, columns, setColumns, idsMatrix } =
 		useConnectionMatrix({
 			update: rerender,
 		});
@@ -133,15 +134,11 @@ function AdminPage() {
 														<AlertDialogCancel>Cancel</AlertDialogCancel>
 														<AlertDialogAction
 															onClick={(event) => {
-																nextMessage({
-																	topic: `lobby/${lobbyId}/navigate`,
-																	payload: "lobby",
-																	qos: 2,
-																});
-
-																lobbyNavigateController.sendMessage(mqtt, {
+																startGameController.sendMessage(mqtt, {
 																	params: { lobbyId },
-																	payload: "lobby",
+																	payload: {
+																		matrix: idsMatrix,
+																	},
 																});
 
 																toast({

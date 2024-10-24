@@ -53,3 +53,12 @@ export const lobbyDrawController = createMqttNetworkController<
 	qos: 1,
 	...stringHandlers,
 });
+
+export const startGameController = createMqttNetworkController<
+	"lobby/+lobbyId/start",
+	{ matrix: string[][] }
+>({
+	topicName: "lobby/+lobbyId/start",
+	qos: 2,
+	...jsonHandlers,
+});
