@@ -1,4 +1,10 @@
-import { MutableRefObject, createRef, useEffect, useRef } from "react";
+import {
+	MutableRefObject,
+	createRef,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import CanvasDraw from "react-canvas-draw";
 import { useMqttClient } from "../contexts/mqtt";
 import {
@@ -19,6 +25,23 @@ type UseConnectionMatrix = {
 export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 	const mqtt = useMqttClient();
 	const connections = useRef<Connection[]>([]);
+
+	const [matrix, setMatrix] = useState<Connection[][]>([]);
+
+	const [columns, setColumns] = useState(1);
+
+	function updateMatrix() {
+		console.log("updateMatrix");
+		const matrix: Connection[][] = [];
+
+		for (let i = 0; i < connections.current.length; i += columns) {
+			matrix.push(connections.current.slice(i, i + columns));
+		}
+
+		setMatrix(matrix);
+	}
+
+	useEffect(updateMatrix, [columns, connections.current]);
 
 	useEffect(() => {
 		if (!mqtt.isConnected) {
@@ -91,5 +114,8 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 	return {
 		connections,
 		reset,
+		columns,
+		setColumns,
+		matrix,
 	};
 }

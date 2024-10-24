@@ -25,6 +25,7 @@ import {
 	lobbyPingController,
 	lobbyPongController,
 } from "../../contexts/mqttControllersDictonary";
+import { useConnectionMatrix } from "../../hooks/useConnectionMatrix";
 
 export const Route = createFileRoute("/$lobbyId/")({
 	component: LobbyPage,
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/$lobbyId/")({
 
 function LobbyPage() {
 	const { lobbyId } = useParams({ from: "/$lobbyId/" });
-	const navigate = useNavigate({ from: "/$lobbyId" });
+
 	const mqtt = useMqttClient();
 	const { toast } = useToast();
 	const [activeView, setActiveView] = useState<"lobby" | "drawer">("lobby");
@@ -40,19 +41,31 @@ function LobbyPage() {
 	const usernameRef = useRef("");
 	const [username, setUsername] = useState("");
 
-	const connections = useRef<Connection[]>([]);
 	const [_, setCount] = useState(0);
 
 	const rerender = useCallback(() => {
 		setCount((count) => count + 1);
 	}, []);
 
+	const { connections, reset } = useConnectionMatrix({ update: rerender });
+
 	useEffect(() => {
 		usernameRef.current = username;
 	}, [username]);
 
 	useEffect(() => {
-		if (!mqtt.isConnected) return;
+		if (!mqtt.isConnected) {
+			return;
+		}
+
+		const cleanUpLobbyPingController = lobbyPingController.addHandler(() => {
+			reset();
+
+			lobbyPongController.sendMessage(mqtt, {
+				params: { lobbyId, userId: mqtt.uuid },
+				payload: { username: usernameRef.current || mqtt.uuid },
+			});
+		});
 
 		const cleanUpNavigateController = lobbyNavigateController.addHandler(
 			(_, view) => {
@@ -60,70 +73,7 @@ function LobbyPage() {
 			},
 		);
 
-		mqtt.addMqttNetworkController(lobbyNavigateController);
-
-		return () => {
-			cleanUpNavigateController();
-		};
-	}, [mqtt.isConnected]);
-
-	useEffect(() => {
-		if (!mqtt.isConnected) {
-			return;
-		}
-
-		function sendPong() {
-			connections.current = [];
-			rerender();
-
-			lobbyPongController.sendMessage(mqtt, {
-				params: { lobbyId, userId: mqtt.uuid },
-				payload: { username: usernameRef.current || mqtt.uuid },
-			});
-		}
-
-		const cleanUpLobbyPingController = lobbyPingController.addHandler(() => {
-			sendPong();
-		});
-
-		const cleanUpPongController = lobbyPongController.addHandler(
-			(topicParameters, payload) => {
-				const connectionExists = connections.current.find(
-					(connection) => connection.uuid === topicParameters.userId,
-				);
-
-				if (!connectionExists) {
-					connections.current = [
-						...connections.current,
-						{ uuid: topicParameters.userId, username: payload.username },
-					];
-				}
-
-				connections.current = connections.current.map((connection) => {
-					if (connection.uuid !== topicParameters.userId) {
-						return connection;
-					}
-
-					return {
-						...connection,
-						username: payload.username,
-					};
-				});
-
-				rerender();
-			},
-		);
-
-		const cleanUpNavigateController = lobbyNavigateController.addHandler(
-			(topicParameters, message) => {
-				if (message === "lobby") {
-					navigate({ to: "/$lobbyId", params: { lobbyId } });
-				}
-			},
-		);
-
 		mqtt.addMqttNetworkController(lobbyPingController);
-		mqtt.addMqttNetworkController(lobbyPongController);
 		mqtt.addMqttNetworkController(lobbyNavigateController);
 
 		lobbyPingController.sendMessage(mqtt, {
@@ -133,7 +83,6 @@ function LobbyPage() {
 
 		return () => {
 			cleanUpLobbyPingController();
-			cleanUpPongController();
 			cleanUpNavigateController();
 		};
 	}, [mqtt.isConnected]);
