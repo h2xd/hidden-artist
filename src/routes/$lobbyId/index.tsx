@@ -16,6 +16,13 @@ import {
 	lobbyPingController,
 	lobbyPongController,
 } from "../../contexts/mqttControllersDictonary";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "../../components/ui/card";
 
 export const Route = createFileRoute("/$lobbyId/")({
 	component: LobbyPage,
@@ -135,60 +142,61 @@ function LobbyPage() {
 	}, [mqtt.isConnected]);
 
 	return (
-		<div className="mx-auto min-w-[500px]">
-			<h1 className="font-black">Lobby 🤝</h1>
-			<p className="text-gray-600 dark:text-gray-300">
-				You will be joining the fun soon!
-			</p>
-
-			<form
-				className="mt-4"
-				onSubmit={(event) => {
-					event.preventDefault();
-
-					toast({
-						title: "Username has been submitted",
-						description: `Hello ${username}! 💍`,
-						duration: 2000,
-					});
-
-					lobbyPongController.sendMessage(mqtt, {
-						params: { lobbyId, userId: mqtt.uuid },
-						payload: { username },
-					});
-				}}
-			>
-				<Label htmlFor="username">Username</Label>
-				<div className="flex flex-row gap-2">
-					<Input
-						id="username"
-						type="text"
-						onChange={(event) => {
+		<div className="mx-auto min-w-[500px] mt-16">
+			<Card>
+				<CardHeader>
+					<CardTitle>
+						<h1 className="font-black">Lobby 🤝</h1>
+					</CardTitle>
+					<CardDescription>You will be joining the fun soon!</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<form
+						onSubmit={(event) => {
 							event.preventDefault();
-							setUsername(event.target.value);
+
+							toast({
+								title: "Username has been submitted",
+								description: `Hello ${username}! 💍`,
+								duration: 2000,
+							});
+
+							lobbyPongController.sendMessage(mqtt, {
+								params: { lobbyId, userId: mqtt.uuid },
+								payload: { username },
+							});
 						}}
-					/>
-					<Button type="submit">Submit</Button>
-				</div>
-			</form>
+					>
+						<Label htmlFor="username">Username</Label>
+						<div className="flex flex-row gap-2">
+							<Input
+								id="username"
+								type="text"
+								onChange={(event) => {
+									event.preventDefault();
+									setUsername(event.target.value);
+								}}
+							/>
+							<Button type="submit">Submit</Button>
+						</div>
+					</form>
+				</CardContent>
+				<CardContent>
+					<h2 className="text-lg font-bold">Participants</h2>
 
-			<hr className="mt-8" />
-
-			<div className="mt-4">
-				<h2 className="text-lg font-bold">Participants</h2>
-
-				<ul className="mt-4 flex flex-col divide-y gap-">
-					{connections.current.map((connection) => (
-						<li
-							key={connection.uuid}
-							className={`${connection.uuid === mqtt.uuid ? "font-bold" : "text-gray-700 dark:text-gray-300"}`}
-						>
-							{connection.username || connection.uuid}
-							{connection.uuid === mqtt.uuid ? " 👑" : ""}
-						</li>
-					))}
-				</ul>
-			</div>
+					<ul className="mt-4 flex flex-col divide-y gap-">
+						{connections.current.map((connection) => (
+							<li
+								key={connection.uuid}
+								className={`${connection.uuid === mqtt.uuid ? "font-bold" : "text-gray-700 dark:text-gray-300"}`}
+							>
+								{connection.username || connection.uuid}
+								{connection.uuid === mqtt.uuid ? " 👑" : ""}
+							</li>
+						))}
+					</ul>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }

@@ -28,6 +28,7 @@ import {
 	lobbyPongController,
 } from "../../contexts/mqttControllersDictonary";
 import { useToast } from "../../hooks/use-toast";
+import { useConnectionMatrix } from "../../hooks/useConnectionMatrix";
 
 export const Route = createLazyFileRoute("/$lobbyId/admin")({
 	component: AdminPage,
@@ -42,16 +43,16 @@ function AdminPage() {
 
 	const mqtt = useMqttClient();
 
-	const connections = useRef<Connection[]>([]);
 	const [_, setCount] = useState(0);
+
+	const { connections, reset } = useConnectionMatrix({ update: rerender });
 
 	function rerender() {
 		setCount((count) => count + 1);
 	}
 
 	function revalidateConnections(delay = 1000) {
-		connections.current = [];
-		rerender();
+		reset();
 
 		window.setTimeout(() => {
 			lobbyPingController.sendMessage(mqtt, {
@@ -62,70 +63,29 @@ function AdminPage() {
 	}
 
 	useEffect(() => {
-		const cleanupLobbyPongController = lobbyPongController.addHandler(
-			(topicParameters, payload) => {
-				const connectionExists = connections.current.find(
-					(connection) => connection.uuid === topicParameters.userId,
-				);
+		if (!mqtt.isConnected) {
+			return;
+		}
 
-				if (!connectionExists) {
-					connections.current = [
-						...connections.current,
-						{
-							uuid: topicParameters.userId,
-							username: payload.username,
-							canvas: createRef(),
-						},
-					];
-				}
+		revalidateConnections();
 
-				connections.current = connections.current.map((connection) => {
-					if (connection.uuid !== topicParameters.userId) {
-						return connection;
-					}
+		// const interval = window.setInterval(() => {
+		// 	if (sessionRunning) return;
 
-					return {
-						...connection,
-						username: payload.username,
-					};
-				});
+		// 	revalidateConnections();
+		// }, 10000);
 
-				setCount((count) => count + 1);
-			},
-		);
-
-		const cleanUpDrawController = lobbyDrawController.addHandler(
-			({ userId }, saveData) => {
-				const connection = connections.current.find(
-					(connection) => connection.uuid === userId,
-				);
-
-				console.log({ userId, saveData }, connections, connection);
-
-				if (!connection) {
-					return;
-				}
-
-				connection.canvas?.current?.clear();
-				connection.canvas?.current?.loadSaveData(saveData, true);
-			},
-		);
-
-		mqtt.addMqttNetworkController(lobbyPongController);
-		mqtt.addMqttNetworkController(lobbyDrawController);
-
-		return () => {
-			cleanupLobbyPongController();
-			cleanUpDrawController();
-		};
-	}, []);
+		// return () => {
+		// 	window.clearInterval(interval);
+		// };
+	}, [mqtt.isConnected]);
 
 	return (
 		<div className="mt-16">
 			<ResizablePanelGroup direction="horizontal" className="border">
 				<ResizablePanel defaultSize={50}>
 					<div className="h-[300px]">
-						<h2 class="">Current Connections</h2>
+						<h2>Current Connections</h2>
 						Count: {connections.current.length}
 						<ul>
 							{connections.current.map((connection) => (
@@ -272,7 +232,7 @@ function AdminPage() {
 							</div>
 						</ResizablePanel>
 						<ResizableHandle />
-						<ResizablePanel defaultSize={50}></ResizablePanel>
+						<ResizablePanel defaultSize={50} />
 					</ResizablePanelGroup>
 				</ResizablePanel>
 			</ResizablePanelGroup>
