@@ -9,6 +9,10 @@ import { useMqttClient } from "@/contexts/mqtt";
 import { Card } from "@/components/ui/card";
 import { useEffect } from "react";
 import { useToast } from "../../../hooks/use-toast";
+import {
+	lobbyDrawController,
+	lobbyNavigateController,
+} from "../../../contexts/mqttControllersDictonary";
 
 export const Route = createFileRoute("/$lobbyId/drawer/")({
 	component: DrawerPage,
@@ -23,26 +27,26 @@ function DrawerPage() {
 	const { toast } = useToast();
 
 	useEffect(() => {
-		mqtt.addSubscription({
-			topicName: `lobby/${lobbyId}/navigate`,
-			qos: 2,
-			handler(topic, message) {
-				console.log("topic", topic, message);
-				switch (message) {
-					case "lobby": {
-						navigate({ to: "/$lobbyId", params: { lobbyId } });
+		if (!mqtt.isConnected) {
+			return;
+		}
 
-						toast({
-							title: "Redirecting to lobby",
-							description:
-								"You are being redirected to the lobby, session was stopped",
-						});
-						break;
-					}
+		const cleanUpNavigateController = lobbyNavigateController.addHandler(
+			(topicParameters, message) => {
+				if (message === "lobby") {
+					toast({
+						title: "The session has ended",
+					});
+
+					navigate({ to: "/$lobbyId", params: { lobbyId } });
 				}
 			},
-		});
-	});
+		);
+
+		return () => {
+			cleanUpNavigateController();
+		};
+	}, [mqtt.isConnected]);
 
 	return (
 		<Card className="w-[502px] h-[502px] rounded-none shadow-lg mx-auto">
@@ -55,6 +59,11 @@ function DrawerPage() {
 					console.log("event", event);
 
 					console.log("save data", event.getSaveData());
+
+					lobbyDrawController.sendMessage(mqtt, {
+						params: { lobbyId, userId: mqtt.uuid },
+						payload: event.getSaveData(),
+					});
 
 					mqtt.nextMessage({
 						topic: `lobby/${lobbyId}/${mqtt.uuid}/draw`,

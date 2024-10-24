@@ -120,12 +120,6 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 			});
 
 			mqttNetworkControllers.current.map((controller) => {
-				console.log(
-					"controller",
-					controller.topicName,
-					topic,
-					matches(controller.topicName, topic),
-				);
 				if (matches(controller.topicName, topic)) {
 					controller.handlers.map((handler) => {
 						const result = exec(controller.topicName, topic);

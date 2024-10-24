@@ -12,6 +12,7 @@ import { useToast } from "../../hooks/use-toast";
 import { Connection } from "../../@types/connection";
 
 import {
+	lobbyNavigateController,
 	lobbyPingController,
 	lobbyPongController,
 } from "../../contexts/mqttControllersDictonary";
@@ -109,8 +110,17 @@ function LobbyPage() {
 			},
 		);
 
+		const cleanUpNavigateController = lobbyNavigateController.addHandler(
+			(topicParameters, message) => {
+				if (message === "lobby") {
+					navigate({ to: "/$lobbyId", params: { lobbyId } });
+				}
+			},
+		);
+
 		mqtt.addMqttNetworkController(lobbyPingController);
 		mqtt.addMqttNetworkController(lobbyPongController);
+		mqtt.addMqttNetworkController(lobbyNavigateController);
 
 		lobbyPingController.sendMessage(mqtt, {
 			params: { lobbyId },
@@ -122,6 +132,7 @@ function LobbyPage() {
 		return () => {
 			cleanUpLobbyPingController();
 			cleanUpPongController();
+			cleanUpNavigateController();
 		};
 	}, [mqtt.isConnected]);
 
@@ -140,6 +151,7 @@ function LobbyPage() {
 					toast({
 						title: "Username has been submitted",
 						description: `Hello ${username}! 💍`,
+						duration: 2000,
 					});
 
 					lobbyPongController.sendMessage(mqtt, {

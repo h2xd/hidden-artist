@@ -10,11 +10,11 @@ const stringHandlers = {
 };
 
 const jsonHandlers = {
-	encodePayload(payload: string) {
-		return payload;
+	encodePayload(payload: object) {
+		return JSON.stringify(payload);
 	},
 	decodePayload(payload: string) {
-		return payload;
+		return JSON.parse(payload);
 	},
 };
 
@@ -23,6 +23,15 @@ export const lobbyPingController = createMqttNetworkController<
 	string
 >({
 	topicName: "lobby/+lobbyId/ping",
+	qos: 1,
+	...stringHandlers,
+});
+
+export const lobbyNavigateController = createMqttNetworkController<
+	"lobby/+lobbyId/navigate",
+	"lobby" | "drawer"
+>({
+	topicName: "lobby/+lobbyId/navigate",
 	qos: 2,
 	...stringHandlers,
 });
@@ -32,11 +41,15 @@ export const lobbyPongController = createMqttNetworkController<
 	{ username: string }
 >({
 	topicName: "lobby/+lobbyId/+userId/pong",
-	qos: 2,
-	encodePayload(payload) {
-		return JSON.stringify(payload);
-	},
-	decodePayload(payload) {
-		return JSON.parse(payload);
-	},
+	qos: 1,
+	...jsonHandlers,
+});
+
+export const lobbyDrawController = createMqttNetworkController<
+	"lobby/+lobbyId/+userId/draw",
+	string
+>({
+	topicName: "lobby/+lobbyId/+userId/draw",
+	qos: 1,
+	...stringHandlers,
 });

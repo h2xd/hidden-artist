@@ -1,22 +1,10 @@
 import { createLazyFileRoute, useParams } from "@tanstack/react-router";
-import { exec } from "mqtt-pattern";
 import { Button } from "../../components/ui/button";
-import { MqttSubscription, useMqttClient } from "../../contexts/mqtt";
+import { useMqttClient } from "../../contexts/mqtt";
 
-import {
-	MutableRefObject,
-	createRef,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
+import { createRef, useEffect, useRef, useState } from "react";
 import CanvasDraw from "react-canvas-draw";
-import {
-	ResizableHandle,
-	ResizablePanel,
-	ResizablePanelGroup,
-} from "../../components/ui/resizable";
-import { useToast } from "../../hooks/use-toast";
+import { Connection } from "../../@types/connection";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -28,11 +16,18 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "../../components/ui/alert-dialog";
-import { Connection } from "../../@types/connection";
 import {
+	ResizableHandle,
+	ResizablePanel,
+	ResizablePanelGroup,
+} from "../../components/ui/resizable";
+import {
+	lobbyDrawController,
+	lobbyNavigateController,
 	lobbyPingController,
 	lobbyPongController,
 } from "../../contexts/mqttControllersDictonary";
+import { useToast } from "../../hooks/use-toast";
 
 export const Route = createLazyFileRoute("/$lobbyId/admin")({
 	component: AdminPage,
@@ -67,37 +62,6 @@ function AdminPage() {
 	}
 
 	useEffect(() => {
-		const drawSubscription: MqttSubscription = {
-			topicName: "lobby/+/+/draw",
-			qos: 0,
-			handler(topic, saveData) {
-				const result = exec("lobby/+lobbyId/+userId/draw", topic);
-
-				if (!result) {
-					return;
-				}
-
-				const connection = connections.current.find(
-					(connection) => connection.uuid === result.userId,
-				);
-
-				if (!connection) {
-					return;
-				}
-
-				connection.canvas?.current?.clear();
-				connection.canvas?.current?.loadSaveData(saveData, true);
-			},
-		};
-
-		mqtt.addSubscription(drawSubscription);
-
-		return () => {
-			mqtt.removeSubscription(drawSubscription);
-		};
-	}, [connections.current]);
-
-	useEffect(() => {
 		const cleanupLobbyPongController = lobbyPongController.addHandler(
 			(topicParameters, payload) => {
 				const connectionExists = connections.current.find(
@@ -107,7 +71,11 @@ function AdminPage() {
 				if (!connectionExists) {
 					connections.current = [
 						...connections.current,
-						{ uuid: topicParameters.userId, username: payload.username },
+						{
+							uuid: topicParameters.userId,
+							username: payload.username,
+							canvas: createRef(),
+						},
 					];
 				}
 
@@ -126,10 +94,29 @@ function AdminPage() {
 			},
 		);
 
+		const cleanUpDrawController = lobbyDrawController.addHandler(
+			({ userId }, saveData) => {
+				const connection = connections.current.find(
+					(connection) => connection.uuid === userId,
+				);
+
+				console.log({ userId, saveData }, connections, connection);
+
+				if (!connection) {
+					return;
+				}
+
+				connection.canvas?.current?.clear();
+				connection.canvas?.current?.loadSaveData(saveData, true);
+			},
+		);
+
 		mqtt.addMqttNetworkController(lobbyPongController);
+		mqtt.addMqttNetworkController(lobbyDrawController);
 
 		return () => {
 			cleanupLobbyPongController();
+			cleanUpDrawController();
 		};
 	}, []);
 
@@ -182,6 +169,11 @@ function AdminPage() {
 																qos: 2,
 															});
 
+															lobbyNavigateController.sendMessage(mqtt, {
+																params: { lobbyId },
+																payload: "lobby",
+															});
+
 															toast({
 																title: "Session stopped",
 																description: "The session has been stopped",
@@ -203,15 +195,15 @@ function AdminPage() {
 											onClick={(event) => {
 												event.preventDefault();
 
-												nextMessage({
-													topic: `lobby/${lobbyId}/navigate`,
+												lobbyNavigateController.sendMessage(mqtt, {
+													params: { lobbyId },
 													payload: "drawer",
-													qos: 2,
 												});
 
 												toast({
 													title: `Revalidation request sent for ${lobbyId}`,
 													description: "The session has started",
+													duration: 2000,
 												});
 
 												setSessionRunning(true);
@@ -231,6 +223,7 @@ function AdminPage() {
 												title: `Revalidation request sent for ${lobbyId}`,
 												description:
 													"The server will revalidate the connection",
+												duration: 2000,
 											});
 										}}
 									>
@@ -256,10 +249,9 @@ function AdminPage() {
 											<AlertDialogCancel>Cancel</AlertDialogCancel>
 											<AlertDialogAction
 												onClick={(event) => {
-													nextMessage({
-														topic: `lobby/${lobbyId}/navigate`,
+													lobbyNavigateController.sendMessage(mqtt, {
+														params: { lobbyId },
 														payload: "lobby",
-														qos: 2,
 													});
 
 													toast({
@@ -286,8 +278,7 @@ function AdminPage() {
 			</ResizablePanelGroup>
 
 			<div className="flex flex-row">
-				hello
-				<div className="scale-50">
+				<div>
 					{connections.current.map((connection) => (
 						<CanvasDraw
 							canvasWidth={500}
