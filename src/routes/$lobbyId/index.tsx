@@ -3,19 +3,15 @@ import {
 	useNavigate,
 	useParams,
 } from "@tanstack/react-router";
-import { MqttSubscription, useMqttClient } from "../../contexts/mqtt";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Connection } from "../../@types/connection";
+import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Button } from "../../components/ui/button";
+import { useMqttClient } from "../../contexts/mqtt";
 import { useToast } from "../../hooks/use-toast";
-import { Connection } from "../../@types/connection";
 
-import {
-	lobbyNavigateController,
-	lobbyPingController,
-	lobbyPongController,
-} from "../../contexts/mqttControllersDictonary";
+import CanvasDraw from "react-canvas-draw";
 import {
 	Card,
 	CardContent,
@@ -23,6 +19,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../components/ui/card";
+import {
+	lobbyDrawController,
+	lobbyNavigateController,
+	lobbyPingController,
+	lobbyPongController,
+} from "../../contexts/mqttControllersDictonary";
 
 export const Route = createFileRoute("/$lobbyId/")({
 	component: LobbyPage,
@@ -33,6 +35,7 @@ function LobbyPage() {
 	const navigate = useNavigate({ from: "/$lobbyId" });
 	const mqtt = useMqttClient();
 	const { toast } = useToast();
+	const [activeView, setActiveView] = useState<"lobby" | "drawer">("lobby");
 
 	const usernameRef = useRef("");
 	const [username, setUsername] = useState("");
@@ -49,26 +52,20 @@ function LobbyPage() {
 	}, [username]);
 
 	useEffect(() => {
-		const lobbyNavigateSubscription: MqttSubscription = {
-			topicName: `lobby/${lobbyId}/navigate`,
-			qos: 2,
-			handler(topic, message) {
-				switch (message) {
-					case "drawer": {
-						navigate({ to: "/$lobbyId/drawer", params: { lobbyId } });
+		if (!mqtt.isConnected) return;
 
-						break;
-					}
-				}
+		const cleanUpNavigateController = lobbyNavigateController.addHandler(
+			(_, view) => {
+				setActiveView(view);
 			},
-		};
+		);
 
-		mqtt.addSubscription(lobbyNavigateSubscription);
+		mqtt.addMqttNetworkController(lobbyNavigateController);
 
 		return () => {
-			mqtt.removeSubscription(lobbyNavigateSubscription);
+			cleanUpNavigateController();
 		};
-	}, [lobbyId]);
+	}, [mqtt.isConnected]);
 
 	useEffect(() => {
 		if (!mqtt.isConnected) {
@@ -141,7 +138,7 @@ function LobbyPage() {
 		};
 	}, [mqtt.isConnected]);
 
-	return (
+	return activeView === "lobby" ? (
 		<div className="mx-auto min-w-[500px] mt-16">
 			<Card>
 				<CardHeader>
@@ -176,6 +173,7 @@ function LobbyPage() {
 									event.preventDefault();
 									setUsername(event.target.value);
 								}}
+								value={username}
 							/>
 							<Button type="submit">Submit</Button>
 						</div>
@@ -198,5 +196,28 @@ function LobbyPage() {
 				</CardContent>
 			</Card>
 		</div>
+	) : (
+		<>
+			<Card className="w-[502px] h-[502px] rounded-none shadow-lg mx-auto">
+				<CanvasDraw
+					canvasWidth={500}
+					canvasHeight={500}
+					gridSizeX={20}
+					gridSizeY={20}
+					onChange={(event) => {
+						lobbyDrawController.sendMessage(mqtt, {
+							params: { lobbyId, userId: mqtt.uuid },
+							payload: event.getSaveData(),
+						});
+
+						mqtt.nextMessage({
+							topic: `lobby/${lobbyId}/${mqtt.uuid}/draw`,
+							payload: event.getSaveData(),
+							qos: 0,
+						});
+					}}
+				/>
+			</Card>
+		</>
 	);
 }
