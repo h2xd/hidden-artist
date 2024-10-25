@@ -24,6 +24,20 @@ import {
 	startGameController,
 } from "../../contexts/mqttControllersDictonary";
 import { useConnectionMatrix } from "../../hooks/useConnectionMatrix";
+import { Trash2Icon, UndoIcon } from "lucide-react";
+import {
+	AlertDialog,
+	AlertDialogTrigger,
+	AlertDialogContent,
+	AlertDialogTitle,
+	AlertDialogDescription,
+	AlertDialogCancel,
+	AlertDialogAction,
+} from "@radix-ui/react-alert-dialog";
+import {
+	AlertDialogHeader,
+	AlertDialogFooter,
+} from "../../components/ui/alert-dialog";
 // import { Cursor } from "../../components/compositions/Cursor/Cursor";
 
 export const Route = createFileRoute("/$lobbyId/")({
@@ -40,6 +54,9 @@ function LobbyPage() {
 	const [activeView, setActiveView] = useState<"lobby" | "drawer">("lobby");
 	const mouseMoveCount = useRef(0);
 
+	const [brushColor, setBrushColor] = useState("#000");
+
+	const drawerRef = useRef<CanvasDraw | null>(null);
 	const usernameRef = useRef("");
 	const [username, setUsername] = useState("");
 
@@ -271,20 +288,110 @@ function LobbyPage() {
 					canvasHeight={500}
 					gridSizeX={20}
 					gridSizeY={20}
+					brushColor={brushColor}
+					ref={drawerRef}
 					onChange={(event) => {
 						lobbyDrawController.sendMessage(mqtt, {
 							params: { lobbyId, userId: mqtt.uuid },
 							payload: event.getSaveData(),
 						});
-
-						mqtt.nextMessage({
-							topic: `lobby/${lobbyId}/${mqtt.uuid}/draw`,
-							payload: event.getSaveData(),
-							qos: 0,
-						});
 					}}
 				/>
 			</Card>
+
+			<div className="fixed left-4 top-[50%] shadow-lg rounded-md border border-gray-100 bg-white dark:bg-slate-900 dark:border-gray-800 flex flex-col">
+				<Button
+					variant={brushColor === "#f87171" ? "outline" : "ghost"}
+					onClick={(event) => {
+						event.preventDefault();
+
+						setBrushColor("#f87171");
+					}}
+				>
+					<div className="inline-block size-4 bg-red-400 rounded-full" />
+				</Button>
+				<Button
+					variant={brushColor === "#4ade80" ? "outline" : "ghost"}
+					onClick={(event) => {
+						event.preventDefault();
+
+						setBrushColor("#4ade80");
+					}}
+				>
+					<div className="inline-block size-4 bg-green-400 rounded-full" />
+				</Button>
+				<Button
+					variant={brushColor === "#facc15" ? "outline" : "ghost"}
+					onClick={(event) => {
+						event.preventDefault();
+
+						setBrushColor("#facc15");
+					}}
+				>
+					<div className="inline-block size-4 bg-yellow-400 rounded-full" />
+				</Button>
+				<Button
+					variant={brushColor === "#000" ? "outline" : "ghost"}
+					onClick={(event) => {
+						event.preventDefault();
+
+						setBrushColor("#000");
+					}}
+				>
+					<div className="inline-block size-4 bg-black rounded-full" />
+				</Button>
+
+				<hr />
+				<Button
+					variant="ghost"
+					onClick={(event) => {
+						event.preventDefault();
+
+						drawerRef.current?.undo();
+
+						lobbyDrawController.sendMessage(mqtt, {
+							params: { lobbyId, userId: mqtt.uuid },
+							// @ts-expect-error - TODO: needs to be fixed
+							payload: drawerRef.current?.getSaveData(),
+						});
+					}}
+				>
+					<UndoIcon />
+				</Button>
+				<AlertDialog key="stop-session">
+					<AlertDialogTrigger asChild>
+						<Button variant="ghost">
+							<Trash2Icon />
+						</Button>
+					</AlertDialogTrigger>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+							<AlertDialogDescription>
+								This action will clear the canvas
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction
+								onClick={(event) => {
+									event.preventDefault();
+
+									drawerRef.current?.clear();
+
+									lobbyDrawController.sendMessage(mqtt, {
+										params: { lobbyId, userId: mqtt.uuid },
+										// @ts-expect-error - TODO: needs to be fixed
+										payload: drawerRef.current?.getSaveData(),
+									});
+								}}
+							>
+								Continue
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			</div>
 		</>
 	);
 }
