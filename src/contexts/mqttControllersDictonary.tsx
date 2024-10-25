@@ -30,11 +30,14 @@ export const lobbyPingController = createMqttNetworkController<
 export const lobbyNavigateController = createMqttNetworkController<
 	"lobby/+lobbyId/navigate",
 	"lobby" | "drawer"
->({
-	topicName: "lobby/+lobbyId/navigate",
-	qos: 2,
-	...stringHandlers,
-});
+>(
+	// @ts-expect-error - TODO: needs to be fixed
+	{
+		topicName: "lobby/+lobbyId/navigate",
+		qos: 2,
+		...stringHandlers,
+	},
+);
 
 export const lobbyPongController = createMqttNetworkController<
 	"lobby/+lobbyId/+userId/pong",

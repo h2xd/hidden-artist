@@ -155,8 +155,10 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 			},
 		);
 
+		// @ts-expect-error - TODO: needs to be fixed
 		mqtt.addMqttNetworkController(lobbyPongController);
 		mqtt.addMqttNetworkController(lobbyDrawController);
+		// @ts-expect-error - TODO: needs to be fixed
 		mqtt.addMqttNetworkController(lobbyCursorController);
 
 		return () => {

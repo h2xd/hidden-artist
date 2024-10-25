@@ -2,7 +2,6 @@ import { createLazyFileRoute, useParams } from "@tanstack/react-router";
 import { Button } from "../../components/ui/button";
 import { useMqttClient } from "../../contexts/mqtt";
 
-import { FormInput } from "lucide-react";
 import { useEffect, useState } from "react";
 import CanvasDraw from "react-canvas-draw";
 import {
@@ -132,7 +131,7 @@ function AdminPage() {
 													<AlertDialogFooter>
 														<AlertDialogCancel>Cancel</AlertDialogCancel>
 														<AlertDialogAction
-															onClick={(event) => {
+															onClick={() => {
 																lobbyNavigateController.sendMessage(mqtt, {
 																	params: { lobbyId },
 																	payload: "lobby",
@@ -214,7 +213,7 @@ function AdminPage() {
 											<AlertDialogFooter>
 												<AlertDialogCancel>Cancel</AlertDialogCancel>
 												<AlertDialogAction
-													onClick={(event) => {
+													onClick={() => {
 														lobbyNavigateController.sendMessage(mqtt, {
 															params: { lobbyId },
 															payload: "lobby",

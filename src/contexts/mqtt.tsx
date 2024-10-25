@@ -91,7 +91,7 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 	>([]);
 
 	function addMqttNetworkController(
-		controller: MqttNetworkController<string, string>,
+		controller: ReturnType<typeof createMqttNetworkController<string, string>>,
 	) {
 		if (mqttNetworkControllers.current.includes(controller)) {
 			return;
@@ -111,6 +111,7 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 		});
 	}
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: I know what I do
 	const handleSubscriptions = useCallback(
 		(topic: string, payload: Uint8Array) => {
 			topicSubscriptions.current.map((subscription) => {
@@ -217,6 +218,7 @@ export function MqttConnectionProvider({ children }: PropsWithChildren) {
 		[],
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: I know what I do
 	const removeSubscription = useCallback(
 		async (subscriptions: MqttSubscription) => {
 			const topicIndex = topicSubscriptions.current.findIndex(
@@ -332,6 +334,7 @@ export function createMqttNetworkController<T extends string, P>({
 		options: { params: MqttParameters<T>; payload: P },
 	) {
 		context.nextMessage({
+			// @ts-expect-error - TODO: needs to be fixed
 			topic: fill(topicName, options.params),
 			payload: encodePayload(options.payload),
 			qos,

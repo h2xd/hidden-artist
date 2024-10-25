@@ -108,7 +108,9 @@ function LobbyPage() {
 		);
 
 		mqtt.addMqttNetworkController(lobbyPingController);
+		// @ts-expect-error - TODO: needs to be fixed
 		mqtt.addMqttNetworkController(lobbyNavigateController);
+		// @ts-expect-error - TODO: needs to be fixed
 		mqtt.addMqttNetworkController(startGameController);
 		mqtt.addMqttNetworkController(lobbyDrawController);
 

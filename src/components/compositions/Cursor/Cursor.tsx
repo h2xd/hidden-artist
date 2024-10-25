@@ -12,8 +12,8 @@ export function Cursor({ connection }: { connection: Connection }) {
 		<div
 			className="absolute"
 			style={{
-				top: `${connection.pointer?.y - 12}px`,
-				left: `${connection.pointer?.x - 12}px`,
+				top: `${connection.pointer?.y || 0 - 12}px`,
+				left: `${connection.pointer?.x || 0 - 12}px`,
 
 				transition: "all 0.2s ease-out",
 			}}
