@@ -24,7 +24,7 @@ import {
 	startGameController,
 } from "../../contexts/mqttControllersDictonary";
 import { useConnectionMatrix } from "../../hooks/useConnectionMatrix";
-import { Cursor } from "../../components/compositions/Cursor/Cursor";
+// import { Cursor } from "../../components/compositions/Cursor/Cursor";
 
 export const Route = createFileRoute("/$lobbyId/")({
 	component: LobbyPage,
