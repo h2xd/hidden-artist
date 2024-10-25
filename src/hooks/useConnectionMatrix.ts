@@ -32,9 +32,8 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 
 	const [columns, setColumns] = useState(1);
 
-	console.log({ idsMatrix });
-
 	function updateMatrix() {
+		console.log("update matrix");
 		const matrix: Connection[][] = [];
 
 		for (let i = 0; i < connections.current.length; i += columns) {
@@ -45,21 +44,29 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 		setIdsMatrix(matrix.map((row) => row.map((connection) => connection.uuid)));
 	}
 
+	function findConnection(uuid: string) {
+		if (!uuid) {
+			return;
+		}
+
+		return connections?.current?.find((connection) => connection.uuid === uuid);
+	}
+
 	const neighbors = useMemo(() => {
-		const selfRow = matrix.findIndex((row) =>
-			row.find((connection) => connection.uuid === mqtt.uuid),
+		const selfRow = idsMatrix.findIndex((row) =>
+			row.find((uuid) => uuid === mqtt.uuid),
 		);
-		const selfColumn = matrix[selfRow]?.findIndex(
-			(connection) => connection.uuid === mqtt.uuid,
+		const selfColumn = idsMatrix[selfRow]?.findIndex(
+			(uuid) => uuid === mqtt.uuid,
 		);
 
 		return {
-			top: matrix[selfRow - 1]?.[selfColumn],
-			right: matrix[selfRow]?.[selfColumn + 1],
-			bottom: matrix[selfRow + 1]?.[selfColumn],
-			left: matrix[selfRow]?.[selfColumn - 1],
+			top: findConnection(idsMatrix[selfRow - 1]?.[selfColumn]),
+			right: findConnection(idsMatrix[selfRow]?.[selfColumn + 1]),
+			bottom: findConnection(idsMatrix[selfRow + 1]?.[selfColumn]),
+			left: findConnection(idsMatrix[selfRow]?.[selfColumn - 1]),
 		};
-	}, [matrix, mqtt.uuid]);
+	}, [idsMatrix, mqtt.uuid]);
 
 	useEffect(updateMatrix, [columns, connections.current]);
 
@@ -105,8 +112,6 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 				const connection = connections.current.find(
 					(connection) => connection.uuid === userId,
 				);
-
-				console.log({ userId, saveData }, connections, connection);
 
 				if (!connection) {
 					return;

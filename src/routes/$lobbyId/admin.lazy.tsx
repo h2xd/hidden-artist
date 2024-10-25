@@ -134,11 +134,9 @@ function AdminPage() {
 														<AlertDialogCancel>Cancel</AlertDialogCancel>
 														<AlertDialogAction
 															onClick={(event) => {
-																startGameController.sendMessage(mqtt, {
+																lobbyNavigateController.sendMessage(mqtt, {
 																	params: { lobbyId },
-																	payload: {
-																		matrix: idsMatrix,
-																	},
+																	payload: "lobby",
 																});
 
 																toast({
@@ -162,9 +160,11 @@ function AdminPage() {
 												onClick={(event) => {
 													event.preventDefault();
 
-													lobbyNavigateController.sendMessage(mqtt, {
+													startGameController.sendMessage(mqtt, {
 														params: { lobbyId },
-														payload: "drawer",
+														payload: {
+															matrix: idsMatrix,
+														},
 													});
 
 													toast({

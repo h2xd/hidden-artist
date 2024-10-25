@@ -44,9 +44,10 @@ function LobbyPage() {
 		setCount((count) => count + 1);
 	}, []);
 
-	const { connections, reset, setIdsMatrix, neighbors } = useConnectionMatrix({
-		update: rerender,
-	});
+	const { connections, reset, setIdsMatrix, neighbors, idsMatrix } =
+		useConnectionMatrix({
+			update: rerender,
+		});
 
 	useEffect(() => {
 		usernameRef.current = username;
@@ -75,6 +76,9 @@ function LobbyPage() {
 		const cleanUpStartGameController = startGameController.addHandler(
 			(_, { matrix }) => {
 				setActiveView("drawer");
+
+				console.log("start game", matrix);
+
 				setIdsMatrix(matrix);
 			},
 		);
@@ -86,6 +90,8 @@ function LobbyPage() {
 				}
 
 				const neighbor = Object.values(neighbors).find((neighbor) => {
+					if (!neighbor) return;
+
 					return neighbor.uuid === userId;
 				});
 
