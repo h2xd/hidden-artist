@@ -1,0 +1,63 @@
+name: Publish Demo
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+on:
+  push:
+    branches: ['main']
+
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: 🛝 Publish Demo to GitHub Pages
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: 📣 Enable Corepack
+        run: corepack enable
+        shell: bash
+
+      - name: Store pnpm cache path
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache/restore@v4
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20.11.1
+          registry-url: https://npm.pkg.github.com
+          scope: '@hivemq'
+
+      - name: Install dependencies
+        shell: bash
+        run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+        env:
+          VITE_PUBSUB_HOSTNAME: ${{ secrets.VITE_PUBSUB_HOSTNAME }}
+          VITE_PUBSUB_USERNAME: ${{ secrets.VITE_PUBSUB_USERNAME }}
+          VITE_PUBSUB_PASSWORD: ${{ secrets.VITE_PUBSUB_PASSWORD }}
+
+      - name: 🔺 Upload Page artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
