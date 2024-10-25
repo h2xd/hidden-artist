@@ -35,7 +35,6 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 	console.log({ idsMatrix });
 
 	function updateMatrix() {
-		console.log("updateMatrix");
 		const matrix: Connection[][] = [];
 
 		for (let i = 0; i < connections.current.length; i += columns) {
@@ -55,14 +54,12 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 		);
 
 		return {
-			top: matrix[selfRow - 1]?.[selfColumn]?.uuid,
-			right: matrix[selfRow]?.[selfColumn + 1]?.uuid,
-			bottom: matrix[selfRow + 1]?.[selfColumn]?.uuid,
-			left: matrix[selfRow]?.[selfColumn - 1]?.uuid,
+			top: matrix[selfRow - 1]?.[selfColumn],
+			right: matrix[selfRow]?.[selfColumn + 1],
+			bottom: matrix[selfRow + 1]?.[selfColumn],
+			left: matrix[selfRow]?.[selfColumn - 1],
 		};
 	}, [matrix, mqtt.uuid]);
-
-	console.log(neighbors);
 
 	useEffect(updateMatrix, [columns, connections.current]);
 

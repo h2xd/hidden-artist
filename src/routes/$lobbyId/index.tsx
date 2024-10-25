@@ -1,10 +1,6 @@
-import {
-	createFileRoute,
-	useNavigate,
-	useParams,
-} from "@tanstack/react-router";
+import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Connection } from "../../@types/connection";
+
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -83,9 +79,28 @@ function LobbyPage() {
 			},
 		);
 
+		const cleanUpDrawController = lobbyDrawController.addHandler(
+			({ userId }, payload) => {
+				if (userId === mqtt.uuid) {
+					return;
+				}
+
+				const neighbor = Object.values(neighbors).find((neighbor) => {
+					return neighbor.uuid === userId;
+				});
+
+				if (!neighbor) {
+					return;
+				}
+
+				neighbor.canvas?.current?.loadSaveData(payload);
+			},
+		);
+
 		mqtt.addMqttNetworkController(lobbyPingController);
 		mqtt.addMqttNetworkController(lobbyNavigateController);
 		mqtt.addMqttNetworkController(startGameController);
+		mqtt.addMqttNetworkController(lobbyDrawController);
 
 		lobbyPingController.sendMessage(mqtt, {
 			params: { lobbyId },
@@ -96,6 +111,7 @@ function LobbyPage() {
 			cleanUpLobbyPingController();
 			cleanUpNavigateController();
 			cleanUpStartGameController();
+			cleanUpDrawController();
 		};
 	}, [mqtt.isConnected]);
 
@@ -166,6 +182,8 @@ function LobbyPage() {
 						canvasHeight={500}
 						gridSizeX={20}
 						gridSizeY={20}
+						hideInterface
+						ref={neighbors.top.canvas}
 					/>
 				</div>
 			)}
@@ -177,6 +195,8 @@ function LobbyPage() {
 						canvasHeight={500}
 						gridSizeX={20}
 						gridSizeY={20}
+						hideInterface
+						ref={neighbors.bottom.canvas}
 					/>
 				</div>
 			)}
@@ -188,6 +208,8 @@ function LobbyPage() {
 						canvasHeight={500}
 						gridSizeX={20}
 						gridSizeY={20}
+						hideInterface
+						ref={neighbors.left.canvas}
 					/>
 				</div>
 			)}
@@ -199,6 +221,8 @@ function LobbyPage() {
 						canvasHeight={500}
 						gridSizeX={20}
 						gridSizeY={20}
+						hideInterface
+						ref={neighbors.right.canvas}
 					/>
 				</div>
 			)}
