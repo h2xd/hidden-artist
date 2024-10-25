@@ -9,6 +9,7 @@ import {
 import CanvasDraw from "react-canvas-draw";
 import { useMqttClient } from "../contexts/mqtt";
 import {
+	lobbyCursorController,
 	lobbyDrawController,
 	lobbyPongController,
 } from "../contexts/mqttControllersDictonary";
@@ -17,6 +18,10 @@ export type Connection = {
 	uuid: string;
 	username?: string;
 	canvas?: MutableRefObject<CanvasDraw | null>;
+	pointer?: {
+		x: number;
+		y: number;
+	};
 };
 
 type UseConnectionMatrix = {
@@ -33,7 +38,6 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 	const [columns, setColumns] = useState(1);
 
 	function updateMatrix() {
-		console.log("update matrix");
 		const matrix: Connection[][] = [];
 
 		for (let i = 0; i < connections.current.length; i += columns) {
@@ -122,12 +126,41 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 			},
 		);
 
+		const cleanUpPointerController = lobbyCursorController.addHandler(
+			({ userId }, payload) => {
+				console.log("pointer", userId, payload);
+
+				const connection = connections.current.find(
+					(connection) => connection.uuid === userId,
+				);
+
+				if (!connection) {
+					return;
+				}
+
+				connections.current = connections.current.map((connection) => {
+					if (connection.uuid !== userId) {
+						return connection;
+					}
+
+					return {
+						...connection,
+						pointer: payload,
+					};
+				});
+
+				update();
+			},
+		);
+
 		mqtt.addMqttNetworkController(lobbyPongController);
 		mqtt.addMqttNetworkController(lobbyDrawController);
+		mqtt.addMqttNetworkController(lobbyCursorController);
 
 		return () => {
 			cleanupLobbyPongController();
 			cleanUpDrawController();
+			cleanUpPointerController();
 		};
 	}, [mqtt.isConnected]);
 

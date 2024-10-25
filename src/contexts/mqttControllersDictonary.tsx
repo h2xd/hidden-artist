@@ -62,3 +62,12 @@ export const startGameController = createMqttNetworkController<
 	qos: 2,
 	...jsonHandlers,
 });
+
+export const lobbyCursorController = createMqttNetworkController<
+	"lobby/+lobbyId/+userId/cursor",
+	{ x: number; y: number }
+>({
+	topicName: "lobby/+lobbyId/+userId/cursor",
+	qos: 1,
+	...jsonHandlers,
+});

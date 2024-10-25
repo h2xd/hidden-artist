@@ -2,6 +2,7 @@ import { createLazyFileRoute, useParams } from "@tanstack/react-router";
 import { Button } from "../../components/ui/button";
 import { useMqttClient } from "../../contexts/mqtt";
 
+import { FormInput } from "lucide-react";
 import { useEffect, useState } from "react";
 import CanvasDraw from "react-canvas-draw";
 import {
@@ -15,6 +16,9 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "../../components/ui/alert-dialog";
+import { Badge } from "../../components/ui/badge";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import {
 	ResizableHandle,
 	ResizablePanel,
@@ -27,18 +31,12 @@ import {
 } from "../../contexts/mqttControllersDictonary";
 import { useToast } from "../../hooks/use-toast";
 import { useConnectionMatrix } from "../../hooks/useConnectionMatrix";
-import { Badge } from "../../components/ui/badge";
-import { FormInput } from "lucide-react";
-import { Label } from "../../components/ui/label";
-import { Input } from "../../components/ui/input";
 
 export const Route = createLazyFileRoute("/$lobbyId/admin")({
 	component: AdminPage,
 });
 
 function AdminPage() {
-	const { nextMessage } = useMqttClient();
-
 	const { lobbyId } = useParams({ from: "/$lobbyId/admin" });
 	const { toast } = useToast();
 	const [sessionRunning, setSessionRunning] = useState(false);
@@ -271,7 +269,7 @@ function AdminPage() {
 					top-[-40px] left-[-40px]"
 					>
 						{row.map((connection) => (
-							<div className="h-[200px]" key={connection.uuid}>
+							<div className="h-[200px] relative" key={connection.uuid}>
 								<CanvasDraw
 									canvasWidth={500}
 									canvasHeight={500}
@@ -279,6 +277,19 @@ function AdminPage() {
 									hideGrid
 									hideInterface
 									backgroundColor="#f5f5f5"
+								/>
+
+								<div
+									className="absolute"
+									style={{
+										top: `${connection.pointer?.y}px`,
+										left: `${connection.pointer?.x}px`,
+										width: "20px",
+										height: "20px",
+										backgroundColor: "red",
+										borderRadius: "50%",
+										transition: "all 0.1s",
+									}}
 								/>
 							</div>
 						))}

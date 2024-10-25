@@ -16,6 +16,7 @@ import {
 	CardTitle,
 } from "../../components/ui/card";
 import {
+	lobbyCursorController,
 	lobbyDrawController,
 	lobbyNavigateController,
 	lobbyPingController,
@@ -28,12 +29,15 @@ export const Route = createFileRoute("/$lobbyId/")({
 	component: LobbyPage,
 });
 
+const MOUSE_MOVE_THRESHOLD = 20;
+
 function LobbyPage() {
 	const { lobbyId } = useParams({ from: "/$lobbyId/" });
 
 	const mqtt = useMqttClient();
 	const { toast } = useToast();
 	const [activeView, setActiveView] = useState<"lobby" | "drawer">("lobby");
+	const mouseMoveCount = useRef(0);
 
 	const usernameRef = useRef("");
 	const [username, setUsername] = useState("");
@@ -233,7 +237,30 @@ function LobbyPage() {
 				</div>
 			)}
 
-			<Card className="w-[502px] h-[502px] rounded-none fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] shadow-none">
+			<Card
+				className="w-[502px] h-[502px] rounded-none fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] shadow-none"
+				onMouseMove={(event) => {
+					mouseMoveCount.current += 1;
+
+					if (mouseMoveCount.current % MOUSE_MOVE_THRESHOLD === 0) {
+						const rect = event.currentTarget.getBoundingClientRect();
+						console.log("mouse move", event, rect);
+
+						console.log("payload", {
+							x: rect.x - event.clientX,
+							y: rect.y - event.clientY,
+						});
+
+						lobbyCursorController.sendMessage(mqtt, {
+							params: { lobbyId, userId: mqtt.uuid },
+							payload: {
+								x: event.clientX - rect.x,
+								y: event.clientY - rect.y,
+							},
+						});
+					}
+				}}
+			>
 				<CanvasDraw
 					canvasWidth={500}
 					canvasHeight={500}
