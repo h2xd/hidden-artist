@@ -24,6 +24,7 @@ import {
 	startGameController,
 } from "../../contexts/mqttControllersDictonary";
 import { useConnectionMatrix } from "../../hooks/useConnectionMatrix";
+import { Cursor } from "../../components/compositions/Cursor/Cursor";
 
 export const Route = createFileRoute("/$lobbyId/")({
 	component: LobbyPage,
@@ -48,10 +49,9 @@ function LobbyPage() {
 		setCount((count) => count + 1);
 	}, []);
 
-	const { connections, reset, setIdsMatrix, neighbors, idsMatrix } =
-		useConnectionMatrix({
-			update: rerender,
-		});
+	const { connections, reset, setIdsMatrix, neighbors } = useConnectionMatrix({
+		update: rerender,
+	});
 
 	useEffect(() => {
 		usernameRef.current = username;
@@ -195,6 +195,8 @@ function LobbyPage() {
 						hideInterface
 						ref={neighbors.top.canvas}
 					/>
+
+					<Cursor connection={neighbors.top} />
 				</div>
 			)}
 
@@ -208,6 +210,8 @@ function LobbyPage() {
 						hideInterface
 						ref={neighbors.bottom.canvas}
 					/>
+
+					<Cursor connection={neighbors.bottom} />
 				</div>
 			)}
 
@@ -221,6 +225,8 @@ function LobbyPage() {
 						hideInterface
 						ref={neighbors.left.canvas}
 					/>
+
+					<Cursor connection={neighbors.left} />
 				</div>
 			)}
 
@@ -234,6 +240,8 @@ function LobbyPage() {
 						hideInterface
 						ref={neighbors.right.canvas}
 					/>
+
+					<Cursor connection={neighbors.right} />
 				</div>
 			)}
 
@@ -244,12 +252,6 @@ function LobbyPage() {
 
 					if (mouseMoveCount.current % MOUSE_MOVE_THRESHOLD === 0) {
 						const rect = event.currentTarget.getBoundingClientRect();
-						console.log("mouse move", event, rect);
-
-						console.log("payload", {
-							x: rect.x - event.clientX,
-							y: rect.y - event.clientY,
-						});
 
 						lobbyCursorController.sendMessage(mqtt, {
 							params: { lobbyId, userId: mqtt.uuid },

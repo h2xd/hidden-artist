@@ -45,6 +45,7 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 		}
 
 		setMatrix(matrix);
+
 		setIdsMatrix(matrix.map((row) => row.map((connection) => connection.uuid)));
 	}
 
@@ -149,7 +150,8 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 					};
 				});
 
-				update();
+				// todo tomorrow find out why cursor is not updating
+				// update();
 			},
 		);
 

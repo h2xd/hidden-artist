@@ -31,6 +31,7 @@ import {
 } from "../../contexts/mqttControllersDictonary";
 import { useToast } from "../../hooks/use-toast";
 import { useConnectionMatrix } from "../../hooks/useConnectionMatrix";
+import { Cursor } from "../../components/compositions/Cursor/Cursor";
 
 export const Route = createLazyFileRoute("/$lobbyId/admin")({
 	component: AdminPage,
@@ -279,18 +280,7 @@ function AdminPage() {
 									backgroundColor="#f5f5f5"
 								/>
 
-								<div
-									className="absolute"
-									style={{
-										top: `${connection.pointer?.y}px`,
-										left: `${connection.pointer?.x}px`,
-										width: "20px",
-										height: "20px",
-										backgroundColor: "red",
-										borderRadius: "50%",
-										transition: "all 0.1s",
-									}}
-								/>
+								<Cursor connection={connection} />
 							</div>
 						))}
 					</div>
