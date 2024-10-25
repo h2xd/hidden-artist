@@ -45,6 +45,7 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 		}
 
 		setMatrix(matrix);
+		if (!matrix.length) return;
 
 		setIdsMatrix(matrix.map((row) => row.map((connection) => connection.uuid)));
 	}
@@ -130,6 +131,7 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 		const cleanUpPointerController = lobbyCursorController.addHandler(
 			({ userId }, payload) => {
 				console.log("pointer", userId, payload);
+				console.log("connections", connections);
 
 				const connection = connections.current.find(
 					(connection) => connection.uuid === userId,
@@ -150,7 +152,6 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 					};
 				});
 
-				// todo tomorrow find out why cursor is not updating
 				// update();
 			},
 		);

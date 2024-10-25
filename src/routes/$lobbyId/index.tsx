@@ -63,6 +63,7 @@ function LobbyPage() {
 		}
 
 		const cleanUpLobbyPingController = lobbyPingController.addHandler(() => {
+			if (activeView === "drawer") return;
 			reset();
 
 			lobbyPongController.sendMessage(mqtt, {
@@ -198,7 +199,7 @@ function LobbyPage() {
 						ref={neighbors.top.canvas}
 					/>
 
-					<Cursor connection={neighbors.top} />
+					{/* <Cursor connection={neighbors.top} /> */}
 				</div>
 			)}
 
@@ -213,7 +214,7 @@ function LobbyPage() {
 						ref={neighbors.bottom.canvas}
 					/>
 
-					<Cursor connection={neighbors.bottom} />
+					{/* <Cursor connection={neighbors.bottom} /> */}
 				</div>
 			)}
 
@@ -228,7 +229,7 @@ function LobbyPage() {
 						ref={neighbors.left.canvas}
 					/>
 
-					<Cursor connection={neighbors.left} />
+					{/* <Cursor connection={neighbors.left} /> */}
 				</div>
 			)}
 
@@ -243,7 +244,7 @@ function LobbyPage() {
 						ref={neighbors.right.canvas}
 					/>
 
-					<Cursor connection={neighbors.right} />
+					{/* <Cursor connection={neighbors.right} /> */}
 				</div>
 			)}
 
