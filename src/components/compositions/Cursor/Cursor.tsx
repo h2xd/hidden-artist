@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Connection } from "../../../hooks/useConnectionMatrix";
+import type { Connection } from "../../../hooks/useConnectionMatrix";
 
 const randomColor = ["#FF6633", "#FFB399", "#FF33FF", "#FFFF99", "#00B3E6"];
 

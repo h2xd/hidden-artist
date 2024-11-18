@@ -45,7 +45,7 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 		}
 
 		setMatrix(matrix);
-		if (!matrix.length) return;
+		console.log("matrix", matrix);
 
 		setIdsMatrix(matrix.map((row) => row.map((connection) => connection.uuid)));
 	}
@@ -152,7 +152,7 @@ export function useConnectionMatrix({ update }: UseConnectionMatrix) {
 					};
 				});
 
-				// update();
+				update();
 			},
 		);
 

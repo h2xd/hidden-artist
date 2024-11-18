@@ -38,7 +38,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogFooter,
 } from "../../components/ui/alert-dialog";
-// import { Cursor } from "../../components/compositions/Cursor/Cursor";
+import { Cursor } from "../../components/compositions/Cursor/Cursor";
 
 export const Route = createFileRoute("/$lobbyId/")({
 	component: LobbyPage,
@@ -63,12 +63,14 @@ function LobbyPage() {
 	const [_, setCount] = useState(0);
 
 	const rerender = useCallback(() => {
+		console.log("rerender");
 		setCount((count) => count + 1);
 	}, []);
 
-	const { connections, reset, setIdsMatrix, neighbors } = useConnectionMatrix({
-		update: rerender,
-	});
+	const { connections, reset, setIdsMatrix, setColumns, neighbors } =
+		useConnectionMatrix({
+			update: rerender,
+		});
 
 	useEffect(() => {
 		usernameRef.current = username;
@@ -96,10 +98,12 @@ function LobbyPage() {
 		);
 
 		const cleanUpStartGameController = startGameController.addHandler(
-			(_, { matrix }) => {
+			(_, { matrix, columns }) => {
 				setActiveView("drawer");
 
 				console.log("start game", matrix);
+
+				setColumns(columns);
 
 				setIdsMatrix(matrix);
 			},
@@ -214,9 +218,10 @@ function LobbyPage() {
 						gridSizeY={20}
 						hideInterface
 						ref={neighbors.top.canvas}
+						disabled
 					/>
 
-					{/* <Cursor connection={neighbors.top} /> */}
+					<Cursor connection={neighbors.top} />
 				</div>
 			)}
 
@@ -228,10 +233,11 @@ function LobbyPage() {
 						gridSizeX={20}
 						gridSizeY={20}
 						hideInterface
+						disabled
 						ref={neighbors.bottom.canvas}
 					/>
 
-					{/* <Cursor connection={neighbors.bottom} /> */}
+					<Cursor connection={neighbors.bottom} />
 				</div>
 			)}
 
@@ -243,10 +249,11 @@ function LobbyPage() {
 						gridSizeX={20}
 						gridSizeY={20}
 						hideInterface
+						disabled
 						ref={neighbors.left.canvas}
 					/>
 
-					{/* <Cursor connection={neighbors.left} /> */}
+					<Cursor connection={neighbors.left} />
 				</div>
 			)}
 
@@ -258,10 +265,11 @@ function LobbyPage() {
 						gridSizeX={20}
 						gridSizeY={20}
 						hideInterface
+						disabled
 						ref={neighbors.right.canvas}
 					/>
 
-					{/* <Cursor connection={neighbors.right} /> */}
+					<Cursor connection={neighbors.right} />
 				</div>
 			)}
 

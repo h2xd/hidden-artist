@@ -48,7 +48,7 @@ export type MqttClientState =
 export type MqttSubscription = {
 	topicName: string;
 	qos: MqttQualityOfService;
-	handler: (topic: string, payload: string) => unknown;
+	handler: (topic: string, payload: string) => void;
 };
 
 export type MqttQualityOfService = 0 | 1 | 2;
@@ -298,7 +298,7 @@ export function useMqttClient() {
 	return context;
 }
 
-type MqttNetworkConnectionHandler<T, P> = (
+type MqttNetworkConnectionHandler<T extends string, P> = (
 	topicParameters: MqttParameters<T>,
 	payload: P,
 ) => void;
