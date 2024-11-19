@@ -64,7 +64,9 @@ function LobbyPage() {
 
 	const drawerRef = useRef<CanvasDraw | null>(null);
 	const usernameRef = useRef("");
-	const { prompt, setPrompt } = usePrompt({ lobbyId });
+	const { prompt, setPrompt, showMessages, hideMessages } = usePrompt({
+		lobbyId,
+	});
 
 	const [_, setCount] = useState(0);
 
@@ -100,6 +102,10 @@ function LobbyPage() {
 		const cleanUpNavigateController = lobbyNavigateController.addHandler(
 			(_, view) => {
 				setActiveView(view);
+
+				if (view === "lobby") {
+					hideMessages();
+				}
 			},
 		);
 
@@ -110,6 +116,7 @@ function LobbyPage() {
 				console.log("start game", matrix);
 
 				setPrompt(prompt);
+				showMessages();
 				setColumns(columns);
 				setIdsMatrix(matrix);
 			},

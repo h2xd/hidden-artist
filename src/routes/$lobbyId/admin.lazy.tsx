@@ -41,7 +41,10 @@ function AdminPage() {
 	const { lobbyId } = useParams({ from: "/$lobbyId/admin" });
 	const { toast } = useToast();
 
-	const { prompt, setPrompt, sendPrompt } = usePrompt({ lobbyId });
+	const { prompt, setPrompt, sendPrompt, showMessages } = usePrompt({
+		lobbyId,
+	});
+	showMessages();
 	const [sessionRunning, setSessionRunning] = useState(false);
 
 	const mqtt = useMqttClient();

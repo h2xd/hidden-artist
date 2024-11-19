@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMqttClient } from "../contexts/mqtt";
 import { lobbyPromptController } from "../contexts/mqttControllersDictonary";
 import { useToast } from "./use-toast";
@@ -6,6 +6,7 @@ import { useToast } from "./use-toast";
 export function usePrompt({ lobbyId }: { lobbyId: string }) {
 	const mqtt = useMqttClient();
 	const [prompt, setPrompt] = useState("");
+	const showPromptMessage = useRef(false);
 	const { toast } = useToast();
 
 	useEffect(() => {
@@ -17,11 +18,13 @@ export function usePrompt({ lobbyId }: { lobbyId: string }) {
 			(_, prompt) => {
 				setPrompt(prompt);
 
-				toast({
-					title: "New Prompt!",
-					description: prompt,
-					duration: 4_000,
-				});
+				if (showPromptMessage.current) {
+					toast({
+						title: "New Prompt!",
+						description: prompt,
+						duration: 4_000,
+					});
+				}
 			},
 		);
 
@@ -39,9 +42,19 @@ export function usePrompt({ lobbyId }: { lobbyId: string }) {
 		});
 	}
 
+	function showMessages() {
+		showPromptMessage.current = true;
+	}
+
+	function hideMessages() {
+		showPromptMessage.current = false;
+	}
+
 	return {
 		prompt,
 		setPrompt,
 		sendPrompt,
+		showMessages,
+		hideMessages,
 	};
 }
