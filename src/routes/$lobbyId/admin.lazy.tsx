@@ -31,6 +31,7 @@ import {
 import { useToast } from "../../hooks/use-toast";
 import { useConnectionMatrix } from "../../hooks/useConnectionMatrix";
 import { Cursor } from "../../components/compositions/Cursor/Cursor";
+import { usePrompt } from "../../hooks/usePrompt";
 
 export const Route = createLazyFileRoute("/$lobbyId/admin")({
 	component: AdminPage,
@@ -39,6 +40,8 @@ export const Route = createLazyFileRoute("/$lobbyId/admin")({
 function AdminPage() {
 	const { lobbyId } = useParams({ from: "/$lobbyId/admin" });
 	const { toast } = useToast();
+
+	const { prompt, setPrompt, sendPrompt } = usePrompt({ lobbyId });
 	const [sessionRunning, setSessionRunning] = useState(false);
 
 	const mqtt = useMqttClient();
@@ -87,7 +90,7 @@ function AdminPage() {
 		<div className="mt-16">
 			<ResizablePanelGroup direction="horizontal" className="border">
 				<ResizablePanel defaultSize={50}>
-					<div className="h-[300px] p-2">
+					<div className="h-[500px] p-2">
 						<h2 className="pb-1 mb-2 border-b font-bold">
 							Current Connections{" "}
 							<Badge className="text-xs" variant="secondary">
@@ -163,6 +166,7 @@ function AdminPage() {
 														payload: {
 															matrix: idsMatrix,
 															columns,
+															prompt,
 														},
 													});
 
@@ -254,6 +258,32 @@ function AdminPage() {
 										setColumns(Number(event.target.value));
 									}}
 								/>
+
+								<Label htmlFor="prompt">Prompt</Label>
+								<div className="flex flex-row gap-1 items-end">
+									<Input
+										className="mt-1"
+										name="prompt"
+										value={prompt}
+										onChange={(event) => {
+											event.preventDefault();
+											setPrompt(event.target.value);
+										}}
+									/>
+
+									<Button
+										onClick={(event) => {
+											event.preventDefault();
+											sendPrompt();
+										}}
+										onSubmit={(event) => {
+											event.preventDefault();
+											sendPrompt();
+										}}
+									>
+										Send Prompt
+									</Button>
+								</div>
 							</div>
 						</ResizablePanel>
 					</ResizablePanelGroup>

@@ -59,7 +59,7 @@ export const lobbyDrawController = createMqttNetworkController<
 
 export const startGameController = createMqttNetworkController<
 	"lobby/+lobbyId/start",
-	{ matrix: string[][]; columns: number }
+	{ matrix: string[][]; columns: number; prompt: string }
 >({
 	topicName: "lobby/+lobbyId/start",
 	qos: 2,
@@ -73,4 +73,13 @@ export const lobbyCursorController = createMqttNetworkController<
 	topicName: "lobby/+lobbyId/+userId/cursor",
 	qos: 1,
 	...jsonHandlers,
+});
+
+export const lobbyPromptController = createMqttNetworkController<
+	"lobby/+lobbyId/prompt",
+	string
+>({
+	topicName: "lobby/+lobbyId/prompt",
+	qos: 1,
+	...stringHandlers,
 });

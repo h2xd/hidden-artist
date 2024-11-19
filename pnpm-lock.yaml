@@ -106,6 +106,9 @@ devDependencies:
   tailwindcss:
     specifier: ^3.4.13
     version: 3.4.13
+  tailwindcss-motion:
+    specifier: 0.4.3-beta
+    version: 0.4.3-beta(tailwindcss@3.4.13)
   typescript:
     specifier: ^5.5.3
     version: 5.6.2
@@ -3139,6 +3142,14 @@ packages:
     dependencies:
       tailwindcss: 3.4.13
     dev: false
+
+  /tailwindcss-motion@0.4.3-beta(tailwindcss@3.4.13):
+    resolution: {integrity: sha512-9S4nmSw01m0/z0UxodUNT7U+yUdlZdXnH9RMkb2rXvrUEQQ+rMVPeP9j4pMwJy779LECiSr+IoSTVrGluSfU2w==}
+    peerDependencies:
+      tailwindcss: '>=3.0.0 || insiders'
+    dependencies:
+      tailwindcss: 3.4.13
+    dev: true
 
   /tailwindcss@3.4.13:
     resolution: {integrity: sha512-KqjHOJKogOUt5Bs752ykCeiwvi0fKVkr5oqsFNt/8px/tA8scFPIlkygsf6jXrfCqGHz7VflA6+yytWuM+XhFw==}

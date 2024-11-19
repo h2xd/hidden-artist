@@ -39,6 +39,7 @@ import {
 	AlertDialogFooter,
 } from "../../components/ui/alert-dialog";
 import { Cursor } from "../../components/compositions/Cursor/Cursor";
+import { usePrompt } from "../../hooks/usePrompt";
 
 export const Route = createFileRoute("/$lobbyId/")({
 	component: LobbyPage,
@@ -59,6 +60,7 @@ function LobbyPage() {
 	const drawerRef = useRef<CanvasDraw | null>(null);
 	const usernameRef = useRef("");
 	const [username, setUsername] = useState("");
+	const { prompt, setPrompt } = usePrompt({ lobbyId });
 
 	const [_, setCount] = useState(0);
 
@@ -98,13 +100,13 @@ function LobbyPage() {
 		);
 
 		const cleanUpStartGameController = startGameController.addHandler(
-			(_, { matrix, columns }) => {
+			(_, { matrix, columns, prompt }) => {
 				setActiveView("drawer");
 
 				console.log("start game", matrix);
 
+				setPrompt(prompt);
 				setColumns(columns);
-
 				setIdsMatrix(matrix);
 			},
 		);
@@ -306,6 +308,12 @@ function LobbyPage() {
 					}}
 				/>
 			</Card>
+
+			<header className="fixed top-2 right-2 shadow-md rounded-md flex flex-row divide-x border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-950 dark:shadow-neutral-800 z-50 motion-preset-slide-left-lg motion-bg-in-yellow-400 motion-bg-out-white motion-duration-2000">
+				<p className="text-sm p-2 px-4 text-gray-800 dark:text-gray-100 font-bold motion-text-in-yellow-600 motion-text-out-current motion-delay-2000 motion-duration-2000">
+					{prompt}
+				</p>
+			</header>
 
 			<div className="fixed left-4 top-[50%] shadow-lg rounded-md border border-gray-100 bg-white dark:bg-slate-900 dark:border-gray-800 flex flex-col">
 				<Button
