@@ -40,6 +40,7 @@ import {
 } from "../../components/ui/alert-dialog";
 import { Cursor } from "../../components/compositions/Cursor/Cursor";
 import { usePrompt } from "../../hooks/usePrompt";
+import { useLocalStorage, usePrevious } from "@uidotdev/usehooks";
 
 export const Route = createFileRoute("/$lobbyId/")({
 	component: LobbyPage,
@@ -49,8 +50,12 @@ const MOUSE_MOVE_THRESHOLD = 20;
 
 function LobbyPage() {
 	const { lobbyId } = useParams({ from: "/$lobbyId/" });
-
 	const mqtt = useMqttClient();
+	const [username, setUsername] = useLocalStorage(
+		`hidden-artist.${lobbyId}.username`,
+		mqtt.uuid,
+	);
+
 	const { toast } = useToast();
 	const [activeView, setActiveView] = useState<"lobby" | "drawer">("lobby");
 	const mouseMoveCount = useRef(0);
@@ -59,7 +64,6 @@ function LobbyPage() {
 
 	const drawerRef = useRef<CanvasDraw | null>(null);
 	const usernameRef = useRef("");
-	const [username, setUsername] = useState("");
 	const { prompt, setPrompt } = usePrompt({ lobbyId });
 
 	const [_, setCount] = useState(0);
